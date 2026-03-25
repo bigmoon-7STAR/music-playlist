@@ -13,9 +13,11 @@
         
         .header { padding: calc(45px + env(safe-area-inset-top)) 20px 10px; background: white; border-bottom: 0.5px solid #ddd; z-index: 100; }
         .header-top { display: flex; justify-content: space-between; align-items: center; }
-        .search-container { padding: 10px 20px; background: white; }
-        #search-input { width: 100%; padding: 8px 12px; border-radius: 10px; border: none; background: var(--secondary-bg); font-size: 14px; outline: none; }
+        .search-container { padding: 10px 20px; background: white; display: flex; gap: 10px; align-items: center; }
+        #search-input { flex: 1; padding: 8px 12px; border-radius: 10px; border: none; background: var(--secondary-bg); font-size: 14px; outline: none; }
         
+        .sort-select { background: none; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; color: #888; padding: 4px; outline: none; }
+
         #content { flex: 1; overflow-y: auto; padding-bottom: 180px; }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 15px; padding: 20px; }
         .card { position: relative; cursor: pointer; }
@@ -45,14 +47,15 @@
         .modal-body { flex: 1; overflow-y: auto; padding: 20px; }
         .edit-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 15px; outline: none; }
         
-        /* 候補タグのスタイル */
         .suggestion-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         .suggestion-tag { background: var(--secondary-bg); color: var(--key-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
-        .suggestion-tag:active { opacity: 0.6; }
 
         .list-view { display: flex; flex-direction: column; padding: 10px 20px; }
-        .list-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 0.5px solid #f0f0f0; }
+        .list-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 0.5px solid #f0f0f0; position: relative; }
         .list-item img { width: 50px; height: 50px; border-radius: 6px; margin-right: 15px; object-fit: cover; }
+        .reorder-btns { display: none; flex-direction: column; gap: 5px; position: absolute; right: 0; }
+        .editing .reorder-btns { display: flex; }
+        .reorder-btns i { font-size: 18px; color: var(--key-color); padding: 5px; }
     </style>
 </head>
 <body>
@@ -64,7 +67,14 @@
             <button id="right-btn" style="background:none; border:none; color:var(--key-color); font-size:24px;" onclick="handleHeaderRight()"><i class="fa-solid fa-circle-plus"></i></button>
         </div>
     </div>
-    <div class="search-container" id="search-box"><input type="text" id="search-input" placeholder="検索..." oninput="render()"></div>
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="検索..." oninput="render()">
+        <select id="sort-type" class="sort-select" onchange="render()">
+            <option value="added">登録順</option>
+            <option value="date">発行日順</option>
+            <option value="custom">カスタム</option>
+        </select>
+    </div>
 
     <div id="content"><div id="main-display"></div></div>
 
@@ -124,13 +134,27 @@
         let playingTracks = [], isShuffle = false, repeatMode = 0; 
         const audio = document.getElementById('audio-element');
 
-        const req = indexedDB.open("MusicStudioFinalV12", 1);
+        const req = indexedDB.open("MusicStudioFinalV15", 1);
+        req.onupgradeneeded = (e) => {
+            let db = e.target.result;
+            if(!db.objectStoreNames.contains("songs")) db.createObjectStore("songs", {keyPath: "id", autoIncrement: true});
+            if(!db.objectStoreNames.contains("playlists")) db.createObjectStore("playlists", {keyPath: "id", autoIncrement: true});
+        };
         req.onsuccess = (e) => { db = e.target.result; loadAll(); };
 
         function loadAll() {
             const tx = db.transaction(["songs", "playlists"], "readonly");
             tx.objectStore("songs").getAll().onsuccess = (e) => { tracks = e.target.result; render(); };
             tx.objectStore("playlists").getAll().onsuccess = (e) => { playlists = e.target.result; render(); };
+        }
+
+        function getSortedTracks(list) {
+            const sortType = document.getElementById('sort-type').value;
+            let result = [...list];
+            if (sortType === 'added') result.sort((a,b) => a.id - b.id);
+            else if (sortType === 'date') result.sort((a,b) => (b.year || 0) - (a.year || 0));
+            // customは保存された順番そのまま（またはplaylist内のID順）
+            return result;
         }
 
         function render() {
@@ -145,8 +169,16 @@
             if (currentView === 'library') {
                 title.innerText = "ライブラリ"; leftBtn.innerText = isEditing ? "完了" : "編集";
                 display.className = "grid";
-                const filtered = tracks.filter(t => t.name.toLowerCase().includes(search) || (t.artist && t.artist.toLowerCase().includes(search)));
-                display.innerHTML = filtered.map(t => `<div class="card ${isEditing?'editing':''}" onclick="${isEditing?`openEdit(${t.id})`:`playSong(${t.id})`}"><div class="del-badge" onclick="event.stopPropagation(); deleteSong(${t.id})"><i class="fa-solid fa-minus"></i></div><img src="${t.cover||''}" class="card-img"><div style="margin-top:8px; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.name}</div><div style="font-size:11px; color:#888;">${t.artist||'不明'}</div></div>`).join('');
+                let filtered = tracks.filter(t => t.name.toLowerCase().includes(search) || (t.artist && t.artist.toLowerCase().includes(search)));
+                filtered = getSortedTracks(filtered);
+                display.innerHTML = filtered.map(t => `
+                    <div class="card ${isEditing?'editing':''}" onclick="${isEditing?`openEdit(${t.id})`:`playSong(${t.id})`}">
+                        <div class="del-badge" onclick="event.stopPropagation(); deleteSong(${t.id})"><i class="fa-solid fa-minus"></i></div>
+                        <img src="${t.cover||''}" class="card-img">
+                        <div style="margin-top:8px; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.name}</div>
+                        <div style="font-size:11px; color:#888;">${t.artist||'不明'} ${t.year ? `(${t.year})` : ''}</div>
+                    </div>
+                `).join('');
             } else if (currentPlaylistId === null) {
                 title.innerText = "プレイリスト"; leftBtn.innerText = isEditing ? "完了" : "編集";
                 display.className = "grid";
@@ -157,16 +189,45 @@
             } else {
                 const pl = playlists.find(p => p.id === currentPlaylistId);
                 title.innerText = pl.name; leftBtn.innerText = "戻る";
-                display.className = "list-view";
-                const plSongs = tracks.filter(t => pl.songIds.includes(t.id));
-                display.innerHTML = plSongs.map(t => `<div class="list-item" onclick="playSong(${t.id})"><img src="${t.cover||''}"><div><div style="font-weight:600;">${t.name}</div><div style="font-size:12px; color:#888;">${t.artist}</div></div></div>`).join('');
+                display.className = "list-view " + (isEditing ? 'editing' : '');
+                let plSongs = pl.songIds.map(id => tracks.find(t => t.id === id)).filter(t => t);
+                const sortType = document.getElementById('sort-type').value;
+                if(sortType !== 'custom') plSongs = getSortedTracks(plSongs);
+
+                display.innerHTML = plSongs.map((t, idx) => `
+                    <div class="list-item" onclick="playSong(${t.id})">
+                        <img src="${t.cover||''}">
+                        <div>
+                            <div style="font-weight:600;">${t.name}</div>
+                            <div style="font-size:12px; color:#888;">${t.artist} ${t.year ? `| ${t.year}` : ''}</div>
+                        </div>
+                        <div class="reorder-btns" onclick="event.stopPropagation()">
+                            <i class="fa-solid fa-chevron-up" onclick="moveItem(${idx}, -1)"></i>
+                            <i class="fa-solid fa-chevron-down" onclick="moveItem(${idx}, 1)"></i>
+                        </div>
+                    </div>
+                `).join('');
             }
+        }
+
+        function moveItem(idx, dir) {
+            const pl = playlists.find(p => p.id === currentPlaylistId);
+            if (!pl) return;
+            const newIdx = idx + dir;
+            if (newIdx < 0 || newIdx >= pl.songIds.length) return;
+            [pl.songIds[idx], pl.songIds[newIdx]] = [pl.songIds[newIdx], pl.songIds[idx]];
+            db.transaction("playlists","readwrite").objectStore("playlists").put(pl).onsuccess = loadAll;
         }
 
         function playSong(id) {
             const t = tracks.find(x => x.id === id);
             if (!t) return;
-            playingTracks = (currentPlaylistId !== null) ? tracks.filter(x => playlists.find(p => p.id === currentPlaylistId).songIds.includes(x.id)) : tracks;
+            if (currentPlaylistId !== null) {
+                const pl = playlists.find(p => p.id === currentPlaylistId);
+                playingTracks = pl.songIds.map(sid => tracks.find(tx => tx.id === sid)).filter(x => x);
+            } else {
+                playingTracks = getSortedTracks(tracks);
+            }
             currentTrackIdx = playingTracks.findIndex(x => x.id === id);
             if (audio.src) URL.revokeObjectURL(audio.src);
             audio.src = URL.createObjectURL(t.data);
@@ -220,6 +281,7 @@
         function switchTab(view) { currentView = view; currentPlaylistId = null; isEditing = false; render(); }
         function openPlaylist(id) { currentPlaylistId = id; render(); }
         function deleteSong(id) { if(confirm("消去？")) db.transaction("songs","readwrite").objectStore("songs").delete(id).onsuccess = loadAll; }
+        function deletePlaylist(id) { if(confirm("プレイリストを削除？")) db.transaction("playlists","readwrite").objectStore("playlists").delete(id).onsuccess = loadAll; }
         function createPlaylist() { const n = prompt("名前"); if(n) db.transaction("playlists","readwrite").objectStore("playlists").add({name:n, songIds:[]}).oncomplete = loadAll; }
         function toggleLyrics() { document.getElementById('lyrics-display').classList.toggle('active'); const t=playingTracks[currentTrackIdx]; document.getElementById('lyrics-display').innerText=t?t.lyrics||"歌詞なし":""; }
         
@@ -229,17 +291,11 @@
             document.getElementById('edit-name').value = t.name;
             document.getElementById('edit-artist').value = t.artist || "";
             document.getElementById('edit-lyrics').value = t.lyrics || "";
-
-            // アーティスト候補の表示
             const suggestionBox = document.getElementById('artist-suggestions');
             const artists = [...new Set(tracks.map(x => x.artist).filter(a => a && a !== "不明"))];
-            suggestionBox.innerHTML = artists.map(a => `
-                <span class="suggestion-tag" onclick="document.getElementById('edit-artist').value='${a}'">${a}</span>
-            `).join('');
-
+            suggestionBox.innerHTML = artists.map(a => `<span class="suggestion-tag" onclick="document.getElementById('edit-artist').value='${a}'">${a}</span>`).join('');
             document.getElementById('edit-modal').style.display = 'flex';
         }
-
         function closeEdit() { document.getElementById('edit-modal').style.display = 'none'; }
         function saveEdit() { const t = tracks.find(x => x.id === editingTrackId); t.name = document.getElementById('edit-name').value; t.artist = document.getElementById('edit-artist').value; t.lyrics = document.getElementById('edit-lyrics').value; db.transaction("songs","readwrite").objectStore("songs").put(t).onsuccess = () => { closeEdit(); loadAll(); }; }
         
@@ -251,7 +307,12 @@
                         for(let i=0; i<d.length; i++) s += String.fromCharCode(d[i]);
                         c = `data:${tag.tags.picture.format};base64,${btoa(s)}`;
                     }
-                    db.transaction("songs","readwrite").objectStore("songs").add({ name: tag.tags.title || f.name, artist: tag.tags.artist || "不明", cover: c, data: f, lyrics: "" }).oncomplete = loadAll;
+                    db.transaction("songs","readwrite").objectStore("songs").add({ 
+                        name: tag.tags.title || f.name, 
+                        artist: tag.tags.artist || "不明", 
+                        year: tag.tags.year || "",
+                        cover: c, data: f, lyrics: "" 
+                    }).oncomplete = loadAll;
                 }});
             }
         };
