@@ -14,50 +14,37 @@
         /* ライブラリUI */
         .header { padding: calc(40px + env(safe-area-inset-top)) 20px 10px; background: white; border-bottom: 0.5px solid #ddd; z-index: 100; }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 15px; padding: 20px; padding-bottom: 160px; }
-        .card { position: relative; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .card:active { transform: scale(0.95); }
+        .card { position: relative; transition: transform 0.2s ease; }
+        .card:active { transform: scale(0.96); }
         .card-img { width: 100%; aspect-ratio: 1/1; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         
-        /* 削除バッジ */
         .del-badge { position: absolute; top: -8px; left: -8px; width: 26px; height: 26px; background: #FF3B30; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 14px; border: 2px solid white; z-index: 10; }
         .editing .del-badge { display: flex; }
 
-        /* ミニプレイヤー */
-        .mini-player { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 64px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border-radius: 14px; display: none; align-items: center; padding: 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 1000; cursor: pointer; }
+        .mini-player { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 64px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 14px; display: none; align-items: center; padding: 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 1000; }
 
-        /* --- フルプレイヤー（アニメーション強化） --- */
+        /* フルプレイヤー */
         .full-player {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 2000; display: none; flex-direction: column;
-            /* 慣性のあるスムーズな動き */
-            transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+            background: #000; z-index: 2000; 
+            display: flex; flex-direction: column;
             transform: translateY(100%);
+            transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
             touch-action: none;
-            overflow: hidden;
+            visibility: hidden;
         }
-        .full-player.active { transform: translateY(0); display: flex; }
+        .full-player.active { transform: translateY(0); visibility: visible; }
         
-        /* 背景ブラーのフェード */
-        #bg-blur { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; 
-            filter: blur(60px) brightness(0.5); background-size: cover; background-position: center;
-            opacity: 0; transition: opacity 0.8s ease; 
-        }
+        #bg-blur { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(60px) brightness(0.5); background-size: cover; background-position: center; opacity: 0; transition: opacity 0.6s ease; }
         .full-player.active #bg-blur { opacity: 1; }
 
-        /* ジャケットの拡大演出 */
-        .main-art-wrap { width: 100%; padding: 0 40px; display: flex; justify-content: center; }
-        #f-img { 
-            width: 100%; max-width: 340px; aspect-ratio: 1/1; border-radius: 15px; 
-            object-fit: contain; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            transform: scale(0.8); transition: transform 0.7s cubic-bezier(0.19, 1, 0.22, 1);
-        }
+        #f-img { width: 85vw; max-width: 340px; aspect-ratio: 1/1; border-radius: 15px; object-fit: contain; box-shadow: 0 20px 60px rgba(0,0,0,0.5); transform: scale(0.85); transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1); }
         .full-player.active #f-img { transform: scale(1); }
 
         /* 再生バー */
-        .seek-box { width: 100%; margin-top: 35px; }
+        .seek-box { width: 100%; margin-top: 35px; padding: 0 40px; }
         #seeker { width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); outline: none; -webkit-appearance: none; }
-        #seeker::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #fff; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+        #seeker::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #fff; border-radius: 50%; }
         .time-labels { display: flex; justify-content: space-between; color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 10px; font-variant-numeric: tabular-nums; }
     </style>
 </head>
@@ -70,6 +57,8 @@
             <button onclick="document.getElementById('audio-upload').click()" style="background:none; border:none; color:var(--key-color); font-size:24px;"><i class="fa-solid fa-circle-plus"></i></button>
         </div>
     </div>
+
+    <datalist id="artist-list"></datalist>
 
     <div id="main" style="overflow-y:auto; flex:1;">
         <div class="grid" id="song-grid"></div>
@@ -88,15 +77,11 @@
         <div id="drag-handle" style="padding: 20px; text-align: center;"><div style="width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.3); margin: 0 auto;"></div></div>
         
         <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <div class="main-art-wrap">
-                <img id="f-img">
-            </div>
-            
+            <img id="f-img">
             <div style="width:100%; padding: 0 40px; margin-top:35px; color:white;">
-                <div id="f-title" style="font-size:24px; font-weight:800; letter-spacing:-0.5px;"></div>
+                <div id="f-title" style="font-size:24px; font-weight:800;"></div>
                 <div id="f-artist" style="font-size:18px; color:var(--key-color); margin-top:5px;"></div>
-                
-                <div class="seek-box">
+                <div class="seek-box" style="padding:0;">
                     <input type="range" id="seeker" value="0" step="0.1">
                     <div class="time-labels">
                         <span id="time-cur">0:00</span>
@@ -119,8 +104,9 @@
         let db, tracks = [], isEditing = false, curIdx = -1;
         const player = document.getElementById('audio');
         const seeker = document.getElementById('seeker');
+        const full = document.getElementById('full');
 
-        const req = indexedDB.open("MusicStudioFinalDB", 9);
+        const req = indexedDB.open("MusicStudioFinalDB", 11);
         req.onupgradeneeded = (e) => {
             let d = e.target.result;
             if(!d.objectStoreNames.contains("songs")) d.createObjectStore("songs", {keyPath:"id", autoIncrement:true});
@@ -129,8 +115,18 @@
 
         function load() {
             db.transaction("songs").objectStore("songs").getAll().onsuccess = (e) => {
-                tracks = e.target.result; render();
+                tracks = e.target.result; 
+                render();
+                updateArtistList(); // 候補リストを更新
             };
+        }
+
+        // アーティスト名の候補リストを作成
+        function updateArtistList() {
+            const datalist = document.getElementById('artist-list');
+            // 重複を除去して名前を抽出
+            const artists = [...new Set(tracks.map(t => t.artist).filter(a => a && a !== "不明"))];
+            datalist.innerHTML = artists.map(name => `<option value="${name}">`).join('');
         }
 
         function render() {
@@ -140,6 +136,7 @@
                     <div class="del-badge" onclick="event.stopPropagation(); deleteTrack(${t.id})"><i class="fa-solid fa-minus"></i></div>
                     <img src="${t.cover||''}" class="card-img">
                     <div style="margin-top:8px; font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.name}</div>
+                    <div style="font-size:11px; color:#8e8e93; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.artist || '不明'}</div>
                 </div>`).join('');
         }
 
@@ -160,6 +157,7 @@
             player.play();
         }
 
+        // 基本操作
         player.ontimeupdate = () => {
             if (!isNaN(player.duration)) {
                 seeker.value = (player.currentTime / player.duration) * 100;
@@ -170,18 +168,16 @@
         seeker.oninput = () => { player.currentTime = (seeker.value / 100) * player.duration; };
         function formatTime(s) { let m = Math.floor(s/60); s = Math.floor(s%60); return `${m}:${s<10?'0':''}${s}`; }
 
-        // スワイプ閉じる
-        const full = document.getElementById('full');
         let startY = 0;
-        full.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+        full.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; full.style.transition = 'none'; }, { passive: true });
         full.addEventListener('touchmove', (e) => {
             let diff = e.touches[0].clientY - startY;
-            if (diff > 0) { full.style.transform = `translateY(${diff}px)`; full.style.transition = 'none'; }
+            if (diff > 0) full.style.transform = `translateY(${diff}px)`;
         }, { passive: true });
         full.addEventListener('touchend', (e) => {
             let diff = e.changedTouches[0].clientY - startY;
-            full.style.transition = 'transform 0.5s cubic-bezier(0.19, 1, 0.22, 1)';
-            if (diff > 120) closeFull(); else full.style.transform = 'translateY(0)';
+            full.style.transition = 'transform 0.4s cubic-bezier(0.19, 1, 0.22, 1)';
+            if (diff > 100) closeFull(); else full.style.transform = 'translateY(0)';
         });
 
         function toggle() { player.paused ? player.play() : player.pause(); }
@@ -189,10 +185,11 @@
         player.onpause = () => { document.getElementById('m-pp').className = 'fa-solid fa-play'; document.getElementById('f-pp').className = 'fa-solid fa-play'; };
         function next() { curIdx = (curIdx + 1) % tracks.length; play(tracks[curIdx].id); }
         function prev() { curIdx = (curIdx - 1 + tracks.length) % tracks.length; play(tracks[curIdx].id); }
-        function openFull() { full.style.display = 'flex'; setTimeout(() => full.classList.add('active'), 10); }
-        function closeFull() { full.classList.remove('active'); setTimeout(() => { full.style.display = 'none'; full.style.transform = ''; }, 600); }
+        function openFull() { full.classList.add('active'); }
+        function closeFull() { full.classList.remove('active'); setTimeout(() => { if(!full.classList.contains('active')) full.style.transform = ''; }, 450); }
 
-        document.getElementById('audio-upload').onchange = (e) => {
+        // ファイル追加時のアーティスト名入力
+        document.getElementById('audio-upload').onchange = async (e) => {
             for (let f of e.target.files) {
                 jsmediatags.read(f, { onSuccess: (tag) => {
                     let c = null; if(tag.tags.picture){
@@ -200,7 +197,19 @@
                         for(let i=0; i<d.length; i++) s += String.fromCharCode(d[i]);
                         c = `data:${tag.tags.picture.format};base64,${btoa(s)}`;
                     }
-                    db.transaction("songs","readwrite").objectStore("songs").add({name:tag.tags.title||f.name, artist:tag.tags.artist||"不明", cover:c, data:f}).oncomplete = load;
+                    
+                    // アーティスト名の入力を促す（datalistと連携）
+                    let defaultArtist = tag.tags.artist || "";
+                    let inputName = prompt(`${f.name}\nアーティスト名を入力してください（登録済みの名前も使えます）`, defaultArtist);
+                    
+                    if(inputName !== null) {
+                        db.transaction("songs","readwrite").objectStore("songs").add({
+                            name: tag.tags.title || f.name,
+                            artist: inputName || "不明",
+                            cover: c,
+                            data: f
+                        }).oncomplete = load;
+                    }
                 }});
             }
         };
