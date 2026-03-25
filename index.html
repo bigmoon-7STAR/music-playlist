@@ -300,7 +300,7 @@
             };
             reader.readAsDataURL(file);
         };
-        function renamePlaylist(id) { const pl=playlists.find(p=>p.id===id); const n=prompt("新名称", pl.name); if(n){ pl.name=n; savePlaylist(pl); } }
+        function renamePlaylist(id) { const pl=playlists.find(p=>p.id===id); const n=prompt("プレイリスト名変更", pl.name); if(n){ pl.name=n; savePlaylist(pl); } }
 
         document.getElementById('audio-upload').onchange = (e) => {
             for (let f of e.target.files) {
