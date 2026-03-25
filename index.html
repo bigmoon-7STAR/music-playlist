@@ -2,85 +2,251 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Playlist</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Music Studio</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        .container { padding: 20px; flex: 1; overflow-y: auto; text-align: center; }
-        h2 { color: #1DB954; }
-        /* プレイリスト表示 */
-        #playlist { list-style: none; padding: 0; margin-top: 20px; text-align: left; }
-        .track-item { background: #282828; margin: 10px 0; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .track-item.active { border: 1px solid #1DB954; background: #333; }
-        /* 下部に固定されるプレイヤー */
-        .player-controls { background: #1e1e1e; padding: 20px; border-top: 1px solid #333; position: sticky; bottom: 0; }
-        .upload-btn { display: inline-block; background: #1DB954; color: white; padding: 12px 24px; border-radius: 50px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
-        audio { width: 100%; filter: invert(100%) hue-rotate(180deg); margin-top: 10px; }
-        #current-title { font-size: 0.9rem; color: #b3b3b3; margin-bottom: 5px; }
+        /* --- デザイン変数（Apple Music風カラー） --- */
+        :root {
+            --key-color: #FA2D55; /* Apple Musicレッド */
+            --bg-color: #FFFFFF;
+            --secondary-bg: #F2F2F7;
+            --text-main: #000000;
+            --text-sub: #8E8E93;
+            --border-color: #D1D1D6;
+            --player-bg: rgba(255, 255, 255, 0.95); /* 半透明 */
+        }
+
+        /* 基本設定（スマホ特化） */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* 全体はスクロールさせない */
+            -webkit-tap-highlight-color: transparent; /* タップ時のハイライトを消す */
+        }
+
+        /* --- ヘッダー --- */
+        .header {
+            padding: calc(20px + env(safe-area-inset-top)) 20px 10px; /* ノッチ対策 */
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        h2 { margin: 0; font-size: 22px; font-weight: 800; }
+        .controls-top { display: flex; gap: 10px; }
+
+        /* iOS風ボタン */
+        .btn-ios {
+            background: var(--secondary-bg);
+            color: var(--key-color);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-ios:active { opacity: 0.6; }
+        .add-btn { background: var(--key-color); color: white; }
+
+        /* --- プレイリストエリア --- */
+        .playlist-container {
+            flex: 1;
+            overflow-y: auto; /* ここだけスクロール */
+            padding: 10px 0 calc(110px + env(safe-area-inset-bottom)); /* プレイヤー分の余白 */
+        }
+
+        .track-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        .track-item:active { background-color: var(--secondary-bg); }
+        
+        /* 再生中のスタイル */
+        .track-item.active { background-color: rgba(250, 45, 85, 0.05); }
+        .track-item.active .track-name { color: var(--key-color); font-weight: 600; }
+        .track-item.active .play-icon { display: block; }
+
+        .track-info-block { flex: 1; overflow: hidden; margin-right: 10px; }
+        .track-name { font-size: 16px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-meta { font-size: 13px; color: var(--text-sub); }
+
+        .play-icon { color: var(--key-color); margin-right: 10px; display: none; font-size: 12px; }
+        .delete-btn-ios { color: var(--text-sub); font-size: 20px; padding: 5px; background: none; border: none; cursor: pointer; }
+
+        /* --- 下部フローティングプレイヤー --- */
+        .player-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--player-bg);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); /* すりガラス効果 */
+            border-top: 1px solid var(--border-color);
+            padding: 15px 20px calc(15px + env(safe-area-inset-bottom)); /* 下部ノッチ対策 */
+            box-sizing: border-box;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* 曲情報（プレイヤー） */
+        .player-track-info { flex: 1; display: flex; align-items: center; gap: 10px; overflow: hidden; }
+        .now-playing-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .now-playing-sub { font-size: 12px; color: var(--text-sub); }
+
+        /* ダミーのアートワーク */
+        .artwork-dummy {
+            width: 45px; height: 45px;
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--border-color); font-size: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* カスタムオーディオプレイヤー（デフォルトを隠す） */
+        audio { display: none; }
+        
+        /* 再生/一時停止ボタン */
+        .play-pause-btn {
+            background: none; border: none;
+            color: var(--text-main); font-size: 28px;
+            cursor: pointer; padding: 0; width: 30px; text-align: center;
+        }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>My Playlist</h2>
-        <input type="file" id="audio-upload" accept="audio/mp3,audio/wav,audio/x-m4a,audio/m4a" multiple style="display:none;">
-        <label for="audio-upload" class="upload-btn">曲を追加する</label>
-        
-        <ul id="playlist">
-            </ul>
+    <div class="header">
+        <h2>ライブラリ</h2>
+        <div class="controls-top">
+            <button class="btn-ios" onclick="clearAll()">編集</button>
+            <input type="file" id="audio-upload" accept="audio/*" multiple style="display:none;">
+            <label for="audio-upload" class="btn-ios add-btn">追加</label>
+        </div>
     </div>
 
-    <div class="player-controls">
-        <div id="current-title">再生していません</div>
-        <audio id="audio-player" controls></audio>
+    <div class="playlist-container" id="playlist">
+        </div>
+
+    <div class="player-footer" id="player-bar" style="display: none;">
+        <div class="player-track-info">
+            <div class="artwork-dummy">♪</div>
+            <div>
+                <div class="now-playing-title" id="np-title">曲名</div>
+                <div class="now-playing-sub">再生中</div>
+            </div>
+        </div>
+        <button class="play-pause-btn" id="pp-btn" onclick="togglePlay()">▶︎</button>
+        <audio id="audio-player"></audio>
     </div>
 
     <script>
-        const upload = document.getElementById('audio-upload');
         const player = document.getElementById('audio-player');
-        const playlistElement = document.getElementById('playlist');
-        const currentTitle = document.getElementById('current-title');
+        const playlistEl = document.getElementById('playlist');
+        const npTitle = document.getElementById('np-title');
+        const ppBtn = document.getElementById('pp-btn');
+        const playerBar = document.getElementById('player-bar');
+        let db;
         let tracks = [];
-        let currentIndex = 0;
+        let currentIndex = -1;
 
-        upload.addEventListener('change', (e) => {
+        // 1. IndexedDB準備
+        const request = indexedDB.open("MusicStudioDB", 1);
+        request.onupgradeneeded = (e) => {
+            db = e.target.result;
+            db.createObjectStore("songs", { keyPath: "id", autoIncrement: true });
+        };
+        request.onsuccess = (e) => { db = e.target.result; loadTracks(); };
+
+        // 2. 読み込み
+        function loadTracks() {
+            const transaction = db.transaction(["songs"], "readonly");
+            const getAll = transaction.objectStore("songs").getAll();
+            getAll.onsuccess = () => { tracks = getAll.result; renderPlaylist(); };
+        }
+
+        // 3. 追加
+        document.getElementById('audio-upload').addEventListener('change', async (e) => {
             const files = Array.from(e.target.files);
-            files.forEach(file => {
-                const url = URL.createObjectURL(file);
-                tracks.push({ name: file.name, url: url });
-            });
-            renderPlaylist();
+            const transaction = db.transaction(["songs"], "readwrite");
+            const store = transaction.objectStore("songs");
+            for (const file of files) { store.add({ name: file.name.replace(/\.[^/.]+$/, ""), data: file }); } // 拡張子を消す
+            transaction.oncomplete = () => loadTracks();
         });
 
+        // 4. プレイリスト表示（Apple Music風）
         function renderPlaylist() {
-            playlistElement.innerHTML = '';
+            playlistEl.innerHTML = '';
             tracks.forEach((track, index) => {
-                const li = document.createElement('li');
-                li.className = 'track-item' + (index === currentIndex ? ' active' : '');
-                li.innerHTML = `<span>${track.name}</span>`;
-                li.onclick = () => playTrack(index);
-                playlistElement.appendChild(li);
+                const div = document.createElement('div');
+                div.className = 'track-item' + (index === currentIndex ? ' active' : '');
+                div.innerHTML = `
+                    <div class="play-icon">▶︎</div>
+                    <div class="track-info-block" onclick="playTrack(${index})">
+                        <div class="track-name">${track.name}</div>
+                        <div class="track-meta">オーディオ</div>
+                    </div>
+                    <button class="delete-btn-ios" onclick="deleteTrack(${track.id})">×</button>
+                `;
+                playlistEl.appendChild(div);
             });
         }
 
+        // 5. 再生
         function playTrack(index) {
+            if (index < 0 || index >= tracks.length) return;
             currentIndex = index;
-            player.src = tracks[index].url;
-            currentTitle.textContent = tracks[index].name;
+            const url = URL.createObjectURL(tracks[index].data);
+            player.src = url;
+            npTitle.textContent = tracks[index].name;
+            playerBar.style.display = 'flex'; // プレイヤーを表示
             renderPlaylist();
             player.play();
         }
 
-        // 曲が終わったら次の曲へ
-        player.onended = () => {
-            if (currentIndex < tracks.length - 1) {
-                playTrack(currentIndex + 1);
-            }
-        };
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
+        // カスタムコントローラーの動き
+        function togglePlay() {
+            if (player.paused) { player.play(); } else { player.pause(); }
         }
+        player.onplay = () => ppBtn.textContent = '⏸'; // 一時停止アイコン
+        player.onpause = () => ppBtn.textContent = '▶︎'; // 再生アイコン
+
+        // 6. 自動次曲
+        player.onended = () => { if (currentIndex < tracks.length - 1) playTrack(currentIndex + 1); };
+
+        // 7. 削除
+        function deleteTrack(id) {
+            if(!confirm("この曲をライブラリから削除しますか？")) return;
+            const transaction = db.transaction(["songs"], "readwrite");
+            transaction.objectStore("songs").delete(id);
+            transaction.oncomplete = () => loadTracks();
+        }
+
+        function clearAll() {
+            if(!confirm("ライブラリのすべての曲を削除しますか？")) return;
+            const transaction = db.transaction(["songs"], "readwrite");
+            transaction.objectStore("songs").clear();
+            transaction.oncomplete = () => { tracks = []; currentIndex = -1; player.src=""; playerBar.style.display='none'; renderPlaylist(); };
+        }
+
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
     </script>
 </body>
 </html>
