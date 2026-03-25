@@ -3,49 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Music Studio Ultra</title>
+    <title>Music Studio Ultra Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
         :root { --key-color: #FA2D55; --bg-color: #FFFFFF; --secondary-bg: #F2F2F7; --text-main: #000000; --text-sub: #8E8E93; --border-color: #D1D1D6; }
         body { font-family: -apple-system, sans-serif; background: var(--bg-color); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        .header { padding: calc(15px + env(safe-area-inset-top)) 20px 10px; border-bottom: 0.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .header { padding: calc(15px + env(safe-area-inset-top)) 20px 10px; border-bottom: 0.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: white; z-index: 10; }
         h2 { margin: 0; font-size: 22px; font-weight: 800; }
 
         /* タブ */
-        .tab-bar { display: flex; justify-content: space-around; padding: 10px; border-bottom: 0.5px solid var(--border-color); font-size: 13px; font-weight: 600; color: var(--text-sub); }
-        .tab.active { color: var(--key-color); }
+        .tab-bar { display: flex; justify-content: space-around; padding: 10px; border-bottom: 0.5px solid var(--border-color); font-size: 13px; font-weight: 600; color: var(--text-sub); background: white; }
+        .tab { padding: 5px 15px; cursor: pointer; }
+        .tab.active { color: var(--key-color); border-bottom: 2px solid var(--key-color); }
 
         .content-area { flex: 1; overflow-y: auto; padding-bottom: 160px; }
         .item-row { display: flex; align-items: center; padding: 10px 20px; border-bottom: 0.5px solid var(--border-color); background: white; }
         .list-art { width: 45px; height: 45px; border-radius: 6px; margin-right: 15px; object-fit: cover; background: var(--secondary-bg); }
 
-        /* プレイヤー（Apple Music風） */
-        .player-footer {
-            position: fixed; bottom: 0; width: 100%;
-            background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border-top: 0.5px solid var(--border-color); padding: 10px 20px calc(15px + env(safe-area-inset-bottom));
-            box-sizing: border-box; z-index: 1000;
-        }
-
+        /* プレイヤー */
+        .player-footer { position: fixed; bottom: 0; width: 100%; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-top: 0.5px solid var(--border-color); padding: 10px 20px calc(15px + env(safe-area-inset-bottom)); box-sizing: border-box; z-index: 1000; }
         .player-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
         .controls-main { display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
-        .icon-btn { background: none; border: none; font-size: 20px; color: var(--text-main); cursor: pointer; transition: 0.2s; }
+        .icon-btn { background: none; border: none; font-size: 20px; color: var(--text-main); cursor: pointer; }
         .icon-btn.active { color: var(--key-color); }
-        .play-pause-circle { font-size: 35px; color: var(--text-main); }
 
-        /* 歌詞・履歴モーダル */
-        .full-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-color); z-index: 2000; display: none;
-            flex-direction: column; transition: 0.3s;
-        }
+        /* 歌詞モーダル */
+        .full-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 2000; display: none; flex-direction: column; }
         .modal-header { padding: calc(15px + env(safe-area-inset-top)) 20px 10px; border-bottom: 0.5px solid var(--border-color); display: flex; justify-content: space-between; }
-        .lyrics-area { flex: 1; padding: 20px; overflow-y: auto; white-space: pre-wrap; font-size: 18px; font-weight: 700; line-height: 1.6; }
-        .lyrics-editor { width: 100%; height: 100%; border: none; font-size: 16px; font-family: inherit; outline: none; resize: none; }
+        .lyrics-area { flex: 1; padding: 30px 20px; overflow-y: auto; white-space: pre-wrap; font-size: 20px; font-weight: 700; line-height: 1.6; }
 
         .btn-ios { background: var(--secondary-bg); color: var(--key-color); border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 13px; }
+
+        /* プレイリスト追加用モーダル */
+        .pl-select-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; align-items: center; justify-content: center; }
+        .modal-box { background: white; width: 85%; border-radius: 20px; padding: 20px; max-height: 60%; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -53,33 +46,33 @@
     <div class="header">
         <h2 id="view-title">ライブラリ</h2>
         <div>
+            <button class="btn-ios" onclick="createNewPlaylist()" id="pl-create-btn" style="display:none;">新規作成</button>
             <input type="file" id="audio-upload" accept="audio/*,.m4a,.mp3" multiple style="display:none;">
             <label for="audio-upload" class="btn-ios" style="background: var(--key-color); color: white;">追加</label>
         </div>
     </div>
 
     <div class="tab-bar">
-        <div class="tab active" onclick="switchTab('library')">ライブラリ</div>
-        <div class="tab" onclick="switchTab('playlists')">プレイリスト</div>
-        <div class="tab" onclick="switchTab('history')">履歴</div>
+        <div class="tab active" id="tab-lib" onclick="switchTab('library')">ライブラリ</div>
+        <div class="tab" id="tab-pl" onclick="switchTab('playlists')">プレイリスト</div>
+        <div class="tab" id="tab-his" onclick="switchTab('history')">履歴</div>
     </div>
 
     <div class="content-area" id="main-content"></div>
 
     <div class="player-footer" id="player-bar" style="display: none;">
         <div class="player-top" onclick="showLyricsModal()">
-            <img src="" id="np-art" class="now-playing-art" style="width:45px; height:45px; border-radius:5px;">
+            <img src="" id="np-art" class="now-playing-art">
             <div style="flex:1; overflow:hidden;">
                 <div id="np-title" style="font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">曲名</div>
                 <div id="np-artist" style="font-size:11px; color:var(--text-sub);">アーティスト</div>
             </div>
             <button class="icon-btn" onclick="event.stopPropagation(); showLyricsModal()"><i class="fa-solid fa-quote-right"></i></button>
         </div>
-
         <div class="controls-main">
             <button id="shuffle-btn" class="icon-btn" onclick="toggleShuffle()"><i class="fa-solid fa-shuffle"></i></button>
             <button class="icon-btn" onclick="prevTrack()"><i class="fa-solid fa-backward-step"></i></button>
-            <button id="pp-btn" class="icon-btn play-pause-circle" onclick="togglePlay()"><i class="fa-solid fa-circle-play"></i></button>
+            <button id="pp-btn" class="icon-btn" style="font-size:35px;" onclick="togglePlay()"><i class="fa-solid fa-circle-play"></i></button>
             <button class="icon-btn" onclick="nextTrack()"><i class="fa-solid fa-forward-step"></i></button>
             <button id="repeat-btn" class="icon-btn" onclick="toggleRepeat()"><i class="fa-solid fa-repeat"></i></button>
         </div>
@@ -92,142 +85,204 @@
             <h3 style="margin:0; font-size:16px;">歌詞</h3>
             <button class="btn-ios" id="lyrics-edit-btn" onclick="toggleLyricsEdit()">編集</button>
         </div>
-        <div class="lyrics-area" id="lyrics-display">ここに歌詞が表示されます</div>
+        <div class="lyrics-area" id="lyrics-display"></div>
         <div id="lyrics-edit-container" style="display:none; flex:1; padding:20px;">
-            <textarea id="lyrics-input" class="lyrics-editor" placeholder="ここに歌詞を入力してください..."></textarea>
-            <button class="btn-ios" style="width:100%; margin-top:10px; background:var(--key-color); color:white;" onclick="saveLyrics()">保存</button>
+            <textarea id="lyrics-input" style="width:100%; height:80%; border:none; font-size:16px; outline:none; resize:none;" placeholder="歌詞を入力..."></textarea>
+            <button class="btn-ios" style="width:100%; background:var(--key-color); color:white;" onclick="saveLyrics()">保存</button>
+        </div>
+    </div>
+
+    <div class="pl-select-modal" id="pl-modal" onclick="closePLModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <h3 style="margin-top:0;">プレイリストに追加</h3>
+            <div id="modal-pl-list"></div>
+            <button class="btn-ios" style="width:100%; margin-top:15px;" onclick="closePLModal()">キャンセル</button>
         </div>
     </div>
 
     <script>
-        let db, tracks = [], history = [], playlists = [], currentTab = 'library';
-        let isShuffle = false, repeatMode = 0; // 0:なし, 1:全リピート, 2:1曲リピート
-        let currentIndex = -1, isLyricsEditing = false;
-        
+        let db, tracks = [], playlists = [], historyList = [], currentTab = 'library', currentPLId = null;
+        let isShuffle = false, repeatMode = 0, currentIndex = -1;
         const player = document.getElementById('audio-player');
-        const request = indexedDB.open("MusicStudioUltraV1", 1);
 
+        // DBバージョンを上げて確実にテーブルを構築
+        const request = indexedDB.open("MusicStudioFinalDB", 3);
         request.onupgradeneeded = (e) => {
             db = e.target.result;
-            db.createObjectStore("songs", { keyPath: "id", autoIncrement: true });
-            db.createObjectStore("history", { keyPath: "id", autoIncrement: true });
+            if(!db.objectStoreNames.contains("songs")) db.createObjectStore("songs", { keyPath: "id", autoIncrement: true });
+            if(!db.objectStoreNames.contains("playlists")) db.createObjectStore("playlists", { keyPath: "id", autoIncrement: true });
+            if(!db.objectStoreNames.contains("history")) db.createObjectStore("history", { keyPath: "id", autoIncrement: true });
         };
-        request.onsuccess = (e) => { db = e.target.result; loadAll(); };
+        request.onsuccess = (e) => { db = e.target.result; loadData(); };
 
-        function loadAll() {
-            const trans = db.transaction(["songs", "history"], "readonly");
+        function loadData() {
+            const trans = db.transaction(["songs", "playlists", "history"], "readonly");
             trans.objectStore("songs").getAll().onsuccess = (e) => { tracks = e.target.result; render(); };
-            trans.objectStore("history").getAll().onsuccess = (e) => { history = e.target.result.reverse(); };
+            trans.objectStore("playlists").getAll().onsuccess = (e) => { playlists = e.target.result; };
+            trans.objectStore("history").getAll().onsuccess = (e) => { historyList = e.target.result.reverse(); };
+        }
+
+        function switchTab(tab) {
+            currentTab = tab; currentPLId = null;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if(tab === 'library') document.getElementById('tab-lib').classList.add('active');
+            if(tab === 'playlists') document.getElementById('tab-pl').classList.add('active');
+            if(tab === 'history') document.getElementById('tab-his').classList.add('active');
+            document.getElementById('pl-create-btn').style.display = tab === 'playlists' ? 'inline-block' : 'none';
+            render();
         }
 
         function render() {
             const container = document.getElementById('main-content');
             container.innerHTML = '';
-            let list = currentTab === 'library' ? tracks : (currentTab === 'history' ? history : []);
             
-            list.forEach((track, index) => {
-                const row = document.createElement('div');
-                row.className = 'item-row';
-                row.innerHTML = `
-                    <img src="${track.cover || 'https://via.placeholder.com/150?text=♪'}" class="list-art">
-                    <div style="flex:1" onclick="playTrack(${track.id})">
-                        <div style="font-weight:600;">${track.name}</div>
-                        <div style="font-size:12px; color:var(--text-sub)">${track.artist}</div>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
+            if(currentTab === 'library') {
+                tracks.forEach(t => createRow(container, t, true));
+            } else if(currentTab === 'playlists' && currentPLId === null) {
+                playlists.forEach(p => createPLRow(container, p));
+            } else if(currentTab === 'playlists' && currentPLId !== null) {
+                const pl = playlists.find(p => p.id === currentPLId);
+                const plTracks = tracks.filter(t => pl.songIds.includes(t.id));
+                plTracks.forEach(t => createRow(container, t, false));
+            } else if(currentTab === 'history') {
+                historyList.forEach(t => createRow(container, t, false));
+            }
         }
 
+        function createRow(parent, t, showAdd) {
+            const div = document.createElement('div');
+            div.className = 'item-row';
+            div.innerHTML = `
+                <img src="${t.cover || 'https://via.placeholder.com/150?text=♪'}" class="list-art">
+                <div style="flex:1; overflow:hidden;" onclick="playTrack(${t.id})">
+                    <div style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.name}</div>
+                    <div style="font-size:12px; color:var(--text-sub)">${t.artist}</div>
+                </div>
+                ${showAdd ? `<button onclick="openPLModal(${t.id})" style="border:none; background:none; color:var(--key-color); font-size:22px; padding:10px;">+</button>` : ''}
+            `;
+            parent.appendChild(div);
+        }
+
+        function createPLRow(parent, p) {
+            const div = document.createElement('div');
+            div.className = 'item-row';
+            div.innerHTML = `
+                <div class="list-art" style="background:#ddd; display:flex; align-items:center; justify-content:center; font-size:20px;">📁</div>
+                <div style="flex:1" onclick="openPlaylist(${p.id})">
+                    <div style="font-weight:600;">${p.name}</div>
+                    <div style="font-size:12px; color:var(--text-sub)">${p.songIds.length}曲</div>
+                </div>
+                <button onclick="deletePL(${p.id})" style="border:none; background:none; color:var(--text-sub);"><i class="fa-solid fa-trash"></i></button>
+            `;
+            parent.appendChild(div);
+        }
+
+        // プレイリスト操作
+        function createNewPlaylist() {
+            const name = prompt("プレイリスト名を入力してください");
+            if(!name) return;
+            const trans = db.transaction(["playlists"], "readwrite");
+            trans.objectStore("playlists").add({ name: name, songIds: [] });
+            trans.oncomplete = () => loadData();
+        }
+
+        let targetSongId = null;
+        function openPLModal(id) {
+            targetSongId = id;
+            const list = document.getElementById('modal-pl-list');
+            list.innerHTML = '';
+            playlists.forEach(pl => {
+                const b = document.createElement('button');
+                b.className = 'btn-ios'; b.style = 'width:100%; margin-bottom:10px; text-align:left;';
+                b.textContent = pl.name;
+                b.onclick = () => addToPL(pl.id);
+                list.appendChild(b);
+            });
+            document.getElementById('pl-modal').style.display = 'flex';
+        }
+
+        function addToPL(plId) {
+            const pl = playlists.find(p => p.id === plId);
+            if(!pl.songIds.includes(targetSongId)) {
+                pl.songIds.push(targetSongId);
+                const trans = db.transaction(["playlists"], "readwrite");
+                trans.objectStore("playlists").put(pl);
+                trans.oncomplete = () => { closePLModal(); loadData(); };
+            } else { alert("既に追加されています"); }
+        }
+
+        function openPlaylist(id) { currentPLId = id; render(); }
+        function closePLModal() { document.getElementById('pl-modal').style.display = 'none'; }
+        function deletePL(id) { if(confirm("削除しますか？")) { db.transaction(["playlists"], "readwrite").objectStore("playlists").delete(id).onsuccess = () => loadData(); } }
+
+        // 再生ロジック
         function playTrack(id) {
-            const track = tracks.find(t => t.id === id);
-            if(!track) return;
-            currentIndex = tracks.indexOf(track);
-            player.src = URL.createObjectURL(track.data);
-            document.getElementById('np-title').textContent = track.name;
-            document.getElementById('np-artist').textContent = track.artist;
-            document.getElementById('np-art').src = track.cover || 'https://via.placeholder.com/150?text=♪';
+            const t = tracks.find(x => x.id === id);
+            currentIndex = tracks.indexOf(t);
+            player.src = URL.createObjectURL(t.data);
+            document.getElementById('np-title').textContent = t.name;
+            document.getElementById('np-artist').textContent = t.artist;
+            document.getElementById('np-art').src = t.cover || 'https://via.placeholder.com/150?text=♪';
             document.getElementById('player-bar').style.display = 'block';
             
-            // 履歴に追加
+            // 履歴保存
             const trans = db.transaction(["history"], "readwrite");
-            trans.objectStore("history").add({ ...track, id: undefined, originalId: track.id, time: new Date() });
+            trans.objectStore("history").add({ ...t, id: undefined, originalId: t.id });
             
             player.play();
-            render();
         }
 
-        // --- コントロール機能 ---
-        function togglePlay() { 
-            const btn = document.getElementById('pp-btn');
-            if(player.paused) { player.play(); btn.innerHTML = '<i class="fa-solid fa-circle-pause"></i>'; }
-            else { player.pause(); btn.innerHTML = '<i class="fa-solid fa-circle-play"></i>'; }
+        function togglePlay() {
+            const icon = document.getElementById('pp-btn').querySelector('i');
+            if(player.paused) { player.play(); icon.className = 'fa-solid fa-circle-pause'; }
+            else { player.pause(); icon.className = 'fa-solid fa-circle-play'; }
         }
 
-        function toggleShuffle() {
-            isShuffle = !isShuffle;
-            document.getElementById('shuffle-btn').classList.toggle('active', isShuffle);
-        }
+        player.onplay = () => document.getElementById('pp-btn').querySelector('i').className = 'fa-solid fa-circle-pause';
+        player.onpause = () => document.getElementById('pp-btn').querySelector('i').className = 'fa-solid fa-circle-play';
 
+        function nextTrack() {
+            let idx = isShuffle ? Math.floor(Math.random()*tracks.length) : currentIndex + 1;
+            if(idx >= tracks.length) idx = 0;
+            playTrack(tracks[idx].id);
+        }
+        function prevTrack() {
+            let idx = currentIndex - 1; if(idx < 0) idx = tracks.length - 1;
+            playTrack(tracks[idx].id);
+        }
+        function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffle-btn').classList.toggle('active', isShuffle); }
         function toggleRepeat() {
             repeatMode = (repeatMode + 1) % 3;
             const btn = document.getElementById('repeat-btn');
-            btn.classList.toggle('active', repeatMode > 0);
             btn.innerHTML = repeatMode === 2 ? '<i class="fa-solid fa-repeat-1"></i>' : '<i class="fa-solid fa-repeat"></i>';
+            btn.classList.toggle('active', repeatMode > 0);
         }
+        player.onended = () => { if(repeatMode === 2) player.play(); else nextTrack(); };
 
-        player.onended = () => {
-            if(repeatMode === 2) { player.play(); }
-            else { nextTrack(); }
-        };
-
-        function nextTrack() {
-            let nextIndex = isShuffle ? Math.floor(Math.random() * tracks.length) : currentIndex + 1;
-            if(nextIndex >= tracks.length) nextIndex = 0;
-            playTrack(tracks[nextIndex].id);
-        }
-
-        function prevTrack() {
-            let prevIndex = currentIndex - 1;
-            if(prevIndex < 0) prevIndex = tracks.length - 1;
-            playTrack(tracks[prevIndex].id);
-        }
-
-        // --- 歌詞機能 ---
+        // 歌詞関連
         function showLyricsModal() {
-            const track = tracks[currentIndex];
-            document.getElementById('lyrics-display').textContent = track.lyrics || "歌詞が登録されていません。";
+            const t = tracks[currentIndex];
+            document.getElementById('lyrics-display').textContent = t.lyrics || "歌詞が登録されていません。";
             document.getElementById('lyrics-modal').style.display = 'flex';
         }
-
         function toggleLyricsEdit() {
-            isLyricsEditing = !isLyricsEditing;
-            document.getElementById('lyrics-display').style.display = isLyricsEditing ? 'none' : 'block';
-            document.getElementById('lyrics-edit-container').style.display = isLyricsEditing ? 'flex' : 'none';
-            if(isLyricsEditing) document.getElementById('lyrics-input').value = tracks[currentIndex].lyrics || "";
+            const isEdit = document.getElementById('lyrics-edit-container').style.display === 'none';
+            document.getElementById('lyrics-display').style.display = isEdit ? 'none' : 'block';
+            document.getElementById('lyrics-edit-container').style.display = isEdit ? 'flex' : 'none';
+            if(isEdit) document.getElementById('lyrics-input').value = tracks[currentIndex].lyrics || "";
         }
-
         function saveLyrics() {
-            const newLyrics = document.getElementById('lyrics-input').value;
-            tracks[currentIndex].lyrics = newLyrics;
+            tracks[currentIndex].lyrics = document.getElementById('lyrics-input').value;
             const trans = db.transaction(["songs"], "readwrite");
             trans.objectStore("songs").put(tracks[currentIndex]);
             trans.oncomplete = () => { toggleLyricsEdit(); showLyricsModal(); };
         }
+        function closeLyricsModal() { document.getElementById('lyrics-modal').style.display = 'none'; }
 
-        function closeLyricsModal() { document.getElementById('lyrics-modal').style.display = 'none'; isLyricsEditing = false; }
-        
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.innerText.includes(tab === 'library' ? 'ライブラリ' : (tab === 'history' ? '履歴' : 'プレイリスト'))));
-            loadAll();
-        }
-
-        // 追加処理
+        // 曲の取り込み
         document.getElementById('audio-upload').addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files);
-            for (const file of files) await processFile(file);
-            loadAll();
+            for (const file of e.target.files) await processFile(file);
+            loadData();
         });
 
         async function processFile(file) {
