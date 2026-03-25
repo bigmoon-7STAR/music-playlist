@@ -218,7 +218,14 @@
                 const seeker = document.getElementById('seeker');
                 seeker.max = audio.duration; seeker.value = audio.currentTime; 
                 const progress = (audio.currentTime / audio.duration) * 100;
-                seeker.style.background = `linear-gradient(to right, #fff ${progress}%, rgba(255,255,255,0.2) ${progress}%)`;
+                /* シャッフル・リピートボタンがONの時、グラデーションにする */
+#btn-shuffle[style*="var(--key-color)"], 
+#btn-repeat[style*="var(--key-color)"] {
+    background: var(--main-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
                 document.getElementById('cur-time').innerText = formatTime(audio.currentTime); 
                 document.getElementById('dur-time').innerText = formatTime(audio.duration); 
             } 
