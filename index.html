@@ -3,78 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Music Player</title>
+    <title>My Playlist</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background: #121212; color: white;
-            display: flex; align-items: center; justify-content: center; 
-            height: 100vh; margin: 0; overflow: hidden;
-        }
-        .player-card { 
-            background: #1e1e1e; padding: 2rem; border-radius: 30px; 
-            text-align: center; width: 85%; max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        h2 { margin-top: 0; color: #1DB954; }
-        .upload-btn {
-            display: inline-block; background: #1DB954; color: white;
-            padding: 18px 35px; border-radius: 50px; cursor: pointer;
-            margin: 20px 0; font-weight: bold; font-size: 1.1rem;
-            transition: transform 0.2s;
-        }
-        .upload-btn:active { transform: scale(0.95); }
-        #file-name { font-size: 0.9rem; color: #b3b3b3; margin-bottom: 25px; min-height: 1.2em; }
-        audio { width: 100%; filter: invert(100%) hue-rotate(180deg); } 
-        .status-badge { 
-            margin-top: 25px; font-size: 0.75rem; padding: 6px 12px; 
-            border-radius: 20px; display: inline-block; background: #333;
-        }
+        body { font-family: sans-serif; background: #121212; color: white; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        .container { padding: 20px; flex: 1; overflow-y: auto; text-align: center; }
+        h2 { color: #1DB954; }
+        /* プレイリスト表示 */
+        #playlist { list-style: none; padding: 0; margin-top: 20px; text-align: left; }
+        .track-item { background: #282828; margin: 10px 0; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .track-item.active { border: 1px solid #1DB954; background: #333; }
+        /* 下部に固定されるプレイヤー */
+        .player-controls { background: #1e1e1e; padding: 20px; border-top: 1px solid #333; position: sticky; bottom: 0; }
+        .upload-btn { display: inline-block; background: #1DB954; color: white; padding: 12px 24px; border-radius: 50px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
+        audio { width: 100%; filter: invert(100%) hue-rotate(180deg); margin-top: 10px; }
+        #current-title { font-size: 0.9rem; color: #b3b3b3; margin-bottom: 5px; }
     </style>
 </head>
 <body>
-    <div class="player-card">
-        <h2>Music Player</h2>
-        <input type="file" id="audio-upload" accept="audio/mp3,audio/wav" style="display:none;">
-        <label for="audio-upload" class="upload-btn">曲をえらぶ</label>
-        <div id="file-name">曲が選択されていません</div>
+    <div class="container">
+        <h2>My Playlist</h2>
+        <input type="file" id="audio-upload" accept="audio/mp3,audio/wav,audio/x-m4a,audio/m4a" multiple style="display:none;">
+        <label for="audio-upload" class="upload-btn">曲を追加する</label>
+        
+        <ul id="playlist">
+            </ul>
+    </div>
+
+    <div class="player-controls">
+        <div id="current-title">再生していません</div>
         <audio id="audio-player" controls></audio>
-        <div id="status" class="status-badge">準備完了</div>
     </div>
 
     <script>
         const upload = document.getElementById('audio-upload');
         const player = document.getElementById('audio-player');
-        const fileName = document.getElementById('file-name');
-        const status = document.getElementById('status');
+        const playlistElement = document.getElementById('playlist');
+        const currentTitle = document.getElementById('current-title');
+        let tracks = [];
+        let currentIndex = 0;
 
         upload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
                 const url = URL.createObjectURL(file);
-                player.src = url;
-                fileName.textContent = file.name;
-                player.play();
-                status.textContent = "再生中";
+                tracks.push({ name: file.name, url: url });
+            });
+            renderPlaylist();
+        });
+
+        function renderPlaylist() {
+            playlistElement.innerHTML = '';
+            tracks.forEach((track, index) => {
+                const li = document.createElement('li');
+                li.className = 'track-item' + (index === currentIndex ? ' active' : '');
+                li.innerHTML = `<span>${track.name}</span>`;
+                li.onclick = () => playTrack(index);
+                playlistElement.appendChild(li);
+            });
+        }
+
+        function playTrack(index) {
+            currentIndex = index;
+            player.src = tracks[index].url;
+            currentTitle.textContent = tracks[index].name;
+            renderPlaylist();
+            player.play();
+        }
+
+        // 曲が終わったら次の曲へ
+        player.onended = () => {
+            if (currentIndex < tracks.length - 1) {
+                playTrack(currentIndex + 1);
             }
-        });
+        };
 
-        // ネットワーク状態の検知
-        window.addEventListener('offline', () => {
-            status.textContent = "オフライン動作中";
-            status.style.color = "#ff4b2b";
-        });
-        window.addEventListener('online', () => {
-            status.textContent = "オンライン";
-            status.style.color = "#1DB954";
-        });
-
-        // Service Workerの登録
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});
         }
     </script>
 </body>
 </html>
-
