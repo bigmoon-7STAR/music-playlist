@@ -109,11 +109,17 @@
             </div>
         </div>
 
-        <div style="padding:30px 0; display:flex; justify-content:space-around; align-items:center; width:80%; margin:0 auto;">
-            <i class="fa-solid fa-backward-step" style="font-size:30px;" onclick="prev()"></i>
+                <div style="padding:30px 0; display:flex; justify-content:space-between; align-items:center; width:85%; margin:0 auto;">
+            <i id="btn-shuffle" class="fa-solid fa-shuffle" style="font-size:22px; color:rgba(255,255,255,0.5);" onclick="toggleShuffle()"></i>
+            <i class="fa-solid fa-backward-step" style="font-size:32px;" onclick="prev()"></i>
             <i id="f-pp" class="fa-solid fa-play" style="font-size:55px;" onclick="togglePlay()"></i>
-            <i class="fa-solid fa-forward-step" style="font-size:30px;" onclick="next()"></i>
+            <i class="fa-solid fa-forward-step" style="font-size:32px;" onclick="next()"></i>
+            <div style="position:relative; width:22px; height:22px; display:flex; align-items:center; justify-content:center;" onclick="toggleRepeat()">
+                <i id="btn-repeat" class="fa-solid fa-repeat" style="font-size:22px; color:rgba(255,255,255,0.5);"></i>
+                <span id="repeat-badge" style="display:none; position:absolute; font-size:9px; font-weight:bold; top:-5px; right:-8px; background:var(--key-color); color:white; border-radius:50%; width:14px; height:14px; text-align:center; line-height:14px;">1</span>
+            </div>
         </div>
+
         
         <div style="padding:0 40px 60px; display:flex; gap:30px; font-size:20px; color:rgba(255,255,255,0.6);">
             <i class="fa-solid fa-quote-right" onclick="toggleLyrics()"></i>
