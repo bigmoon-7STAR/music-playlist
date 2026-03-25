@@ -3,6 +3,9 @@ let isShuffle = false;  // シャッフル状態
 let repeatMode = 0;     // 0:オフ, 1:全曲, 2:1曲
 let db, tracks = [], playlists = [], isEditing = false, currentView = 'library', currentPlaylistId = null;
 let editingTrackId = null, selectedTrackIds = [], currentTrackIdx = -1;
+let playingTracks = [], isShuffle = false, repeatMode = 0; 
+
+let editingTrackId = null, selectedTrackIds = [], currentTrackIdx = -1;
 let playingTracks = []; // ← これを追加！今再生している「範囲」を覚えるための変数です
 let isShuffle = false;  // ← ついでにシャッフル状態もここで宣言
 let repeatMode = 0;     // ← リピート状態もここで宣言
