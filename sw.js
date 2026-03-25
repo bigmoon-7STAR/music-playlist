@@ -123,30 +123,42 @@ function toggleRepeat() {
     else { btn.style.color = 'var(--key-color)'; badge.style.display = 'block'; }
 }
 
-function next() { 
-    if (playingTracks.length === 0) return;
-    if (isShuffle) {
-        let nextIdx = Math.floor(Math.random() * playingTracks.length);
-        if (nextIdx === currentTrackIdx && playingTracks.length > 1) nextIdx = (nextIdx + 1) % playingTracks.length;
-        playSong(playingTracks[nextIdx].id);
-    } else {
-        if (currentTrackIdx < playingTracks.length - 1) {
-            playSong(playingTracks[currentTrackIdx + 1].id); 
-        } else if (repeatMode === 1) {
-            playSong(playingTracks[0].id); 
+        function toggleShuffle() {
+            isShuffle = !isShuffle;
+            document.getElementById('btn-shuffle').style.color = isShuffle ? 'var(--key-color)' : 'rgba(255,255,255,0.5)';
         }
-    }
-}
 
-function prev() { 
-    if (audio.currentTime > 3) {
-        audio.currentTime = 0;
-    } else if (currentTrackIdx > 0) {
-        playSong(playingTracks[currentTrackIdx - 1].id); 
-    } else if (repeatMode === 1) {
-        playSong(playingTracks[playingTracks.length - 1].id);
-    }
-}
+        function toggleRepeat() {
+            repeatMode = (repeatMode + 1) % 3;
+            const btn = document.getElementById('btn-repeat');
+            const badge = document.getElementById('repeat-badge');
+            if (repeatMode === 0) { btn.style.color = 'rgba(255,255,255,0.5)'; badge.style.display = 'none'; }
+            else if (repeatMode === 1) { btn.style.color = 'var(--key-color)'; badge.style.display = 'none'; }
+            else { btn.style.color = 'var(--key-color)'; badge.style.display = 'block'; }
+        }
+
+        function next() { 
+            if (playingTracks.length === 0) return;
+            if (isShuffle) {
+                let nextIdx = Math.floor(Math.random() * playingTracks.length);
+                if (nextIdx === currentTrackIdx && playingTracks.length > 1) nextIdx = (nextIdx + 1) % playingTracks.length;
+                playSong(playingTracks[nextIdx].id);
+            } else {
+                if (currentTrackIdx < playingTracks.length - 1) playSong(playingTracks[currentTrackIdx + 1].id); 
+                else if (repeatMode === 1) playSong(playingTracks[0].id); 
+            }
+        }
+
+        function prev() { 
+            if (audio.currentTime > 3) audio.currentTime = 0; 
+            else if (currentTrackIdx > 0) playSong(playingTracks[currentTrackIdx - 1].id); 
+            else if (repeatMode === 1) playSong(playingTracks[playingTracks.length - 1].id);
+        }
+
+        audio.onended = () => { 
+            if (repeatMode === 2) { audio.currentTime = 0; audio.play(); } 
+            else { next(); }
+        };
 
 audio.onended = () => { 
     if (repeatMode === 2) { audio.currentTime = 0; audio.play(); } 
@@ -160,3 +172,32 @@ function closePicker() {
     modal.classList.remove('active');
     setTimeout(() => { modal.style.display = 'none'; }, 400);
 }
+        function playSong(id) {
+            // 再生範囲を判定
+            if (currentPlaylistId !== null) {
+                const pl = playlists.find(p => p.id === currentPlaylistId);
+                playingTracks = tracks.filter(t => pl.songIds.includes(t.id));
+            } else {
+                playingTracks = tracks;
+            }
+
+            const t = tracks.find(x => x.id === id);
+            if (!t) return;
+            currentTrackIdx = playingTracks.findIndex(x => x.id === id);
+
+            if (audio.src) URL.revokeObjectURL(audio.src);
+            audio.src = URL.createObjectURL(t.data);
+
+            const mImg = document.getElementById('m-img');
+            mImg.src = t.cover || '';
+            mImg.style.display = t.cover ? 'block' : 'none'; 
+
+            document.getElementById('m-title').innerText = t.name;
+            document.getElementById('f-title').innerText = t.name;
+            document.getElementById('f-artist').innerText = t.artist || '不明';
+            document.getElementById('f-img').src = t.cover || '';
+            document.getElementById('bg-blur').style.backgroundImage = t.cover ? `url(${t.cover})` : 'none';
+            document.getElementById('mini').style.display = 'flex';
+            audio.play();
+        }
+
