@@ -7,8 +7,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
-        :root { --key-color: #FA2D55; --bg-color: #FFFFFF; --secondary-bg: #F2F2F7; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root { 
+    /* グラデーションに使う2つの色（ここを変えれば全部変わります！） */
+    --grad-start: #FA2D55; 
+    --grad-end: #FF7261;
+
+    /* アプリ全体のメイン色（単色で使う用） */
+    --key-color: #FA2D55; 
+    --bg-color: #FFFFFF; 
+    --secondary-bg: #F2F2F7; 
+
+    /* ★なめらかなグラデーションを定義★ */
+    --main-gradient: linear-gradient(135deg, var(--grad-start) 0%, var(--grad-end) 100%);
+}
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .header { padding: calc(45px + env(safe-area-inset-top)) 20px 10px; background: white; border-bottom: 0.5px solid #ddd; z-index: 100; }
         .header-top { display: flex; justify-content: space-between; align-items: center; }
@@ -40,6 +51,13 @@
         .tab-item.active { color: var(--key-color); }
         .tab-item i { font-size: 22px; margin-bottom: 4px; }
     </style>
+    /* アイコンをグラデーションにする魔法のコード */
+#f-pp, #btn-shuffle, #btn-repeat {
+    background: var(--main-gradient);
+    -webkit-background-clip: text; /* 文字（アイコン）の形に背景を切り抜く */
+    -webkit-text-fill-color: transparent; /* 中身を透明にして背景のグラデーションを見せる */
+    display: inline-block;
+}
 </head>
 <body>
 
