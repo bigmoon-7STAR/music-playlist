@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Music Studio Ultimate</title>
+    <title>Music Studio Apple Style</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
-        :root { --key-color: #C5956B; --bg-color: #FFFFFF; --secondary-bg: #F2F2F7; }
+        :root { --key-color: #C5956B; --bg-color: #FFFFFF; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; color: #5D4037; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        /* Header */
         .header { padding: calc(45px + env(safe-area-inset-top)) 20px 10px; background: white; border-bottom: 0.5px solid #ddd; z-index: 1000; }
         .header-top { display: flex; justify-content: space-between; align-items: center; }
         
-        /* Content Views */
         #content-wrapper { flex: 1; position: relative; overflow: hidden; }
         .view-container { position: absolute; width: 100%; height: 100%; top: 0; left: 0; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; overflow-y: auto; padding-bottom: 180px; }
         .view-active { transform: translateX(0); opacity: 1; pointer-events: auto; }
@@ -27,48 +25,41 @@
         .card { position: relative; cursor: pointer; }
         .card-img { width: 100%; aspect-ratio: 1/1; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1); background: #f0f0f0; }
         
-        /* Badges */
         .badge { position: absolute; width: 26px; height: 26px; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; border: 2.5px solid white; z-index: 10; font-size: 11px; }
         .editing .badge { display: flex; }
         .del-badge { top: -8px; left: -8px; background: #FF3B30; }
         .edit-name-badge { bottom: 40px; right: -8px; background: var(--key-color); }
         .edit-img-badge { bottom: 40px; left: -8px; background: #5856D6; }
 
-        /* List Swipe & Sortable */
         .list-item-wrapper { position: relative; overflow: hidden; border-bottom: 0.5px solid #f0f0f0; background: #FF3B30; }
-        .list-item { display: flex; align-items: center; padding: 12px 20px; background: white; transition: transform 0.2s ease-out; position: relative; z-index: 2; cursor: pointer; }
-        .list-item img { width: 50px; height: 50px; border-radius: 6px; margin-right: 15px; object-fit: cover; pointer-events: none; }
-        .list-item .handle { margin-left: auto; color: #ccc; padding: 10px; cursor: grab; }
+        .list-item { display: flex; align-items: center; padding: 12px 20px; background: white; transition: transform 0.2s ease-out; position: relative; z-index: 2; }
+        .list-item img { width: 50px; height: 50px; border-radius: 6px; margin-right: 15px; object-fit: cover; }
+        .list-item .handle { margin-left: auto; color: #ccc; padding: 10px; }
         .swipe-del-btn { position: absolute; right: 0; top: 0; height: 100%; width: 80px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px; z-index: 1; }
 
-        /* Mini Player */
         .mini-player { position: fixed; bottom: calc(85px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 60px; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border-radius: 12px; display: none; align-items: center; padding: 0 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; }
         .mini-player img { width: 44px; height: 44px; border-radius: 6px; margin-right: 12px; object-fit: cover; }
         
-        /* Full Player */
         .full-player { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); visibility: hidden; color: white; overflow: hidden; touch-action: none; }
         .full-player.active { transform: translateY(0); visibility: visible; }
         .full-player.dragging { transition: none; }
-        #bg-blur { position: absolute; width: 160%; height: 160%; top: -30%; left: -30%; z-index: -1; filter: blur(60px) brightness(0.4); background-size: cover; background-position: center; transition: background-image 0.5s; }
+        #bg-blur { position: absolute; width: 160%; height: 160%; top: -30%; left: -30%; z-index: -1; filter: blur(60px) brightness(0.4); background-size: cover; background-position: center; }
 
-        /* Custom Sliders */
-        .seeker-container { width: 100%; padding: 0 35px; }
-        .custom-range { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 10px; background: rgba(255,255,255,0.2); background-image: linear-gradient(var(--key-color), var(--key-color)); background-repeat: no-repeat; background-size: 0% 100%; cursor: pointer; margin: 15px 0; }
-        .custom-range::-webkit-slider-thumb { -webkit-appearance: none; height: 6px; width: 6px; border-radius: 50%; background: transparent; transition: all 0.2s; }
+        .seeker-container { width: 100%; padding: 0 35px; margin-bottom: 20px; position: relative; }
+        .custom-range { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 10px; background: rgba(255,255,255,0.2); background-image: linear-gradient(var(--key-color), var(--key-color)); background-repeat: no-repeat; background-size: 0% 100%; cursor: pointer; margin: 10px 0; position: relative; z-index: 5; }
+        .custom-range::-webkit-slider-thumb { -webkit-appearance: none; height: 6px; width: 6px; border-radius: 50%; background: transparent; transition: 0.2s; }
         .custom-range:active::-webkit-slider-thumb { background: white; height: 16px; width: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
 
-        #visualizer { width: 100%; height: 50px; margin-top: 5px; }
-        .volume-container { display: flex; align-items: center; padding: 0 35px; margin-top: 5px; color: rgba(255,255,255,0.4); font-size: 14px; }
-        .volume-range { flex: 1; height: 4px; margin: 0 15px; }
+        /* Apple Music Style Visualizer */
+        #visualizer { width: calc(100% - 70px); height: 40px; position: absolute; bottom: 45px; left: 35px; z-index: 1; pointer-events: none; opacity: 0.6; }
 
-        .player-controls { padding: 10px 35px 60px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .player-controls { padding: 10px 35px 80px; display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .control-btn { font-size: 20px; color: rgba(255,255,255,0.4); cursor: pointer; position: relative; }
         .control-btn.active { color: white; filter: drop-shadow(0 0 5px var(--key-color)); }
-        .repeat-badge { position: absolute; top: -5px; right: -8px; font-size: 8px; background: var(--key-color); color: white; border-radius: 50%; width: 13px; height: 13px; display: none; align-items: center; justify-content: center; font-weight: bold; }
+        .repeat-badge { position: absolute; top: -5px; right: -8px; font-size: 8px; background: var(--key-color); color: white; border-radius: 50%; width: 13px; height: 13px; display: none; align-items: center; justify-content: center; }
 
-        /* Tab Bar */
         .tab-bar { position: fixed; bottom: 0; width: 100%; height: calc(60px + env(safe-area-inset-bottom)); background: rgba(255,255,255,0.9); border-top: 0.5px solid #ddd; display: flex; justify-content: space-around; padding-top: 10px; z-index: 500; }
-        .tab-item { display: flex; flex-direction: column; align-items: center; color: #8E8E93; font-size: 10px; border:none; background:none; width: 100%; cursor: pointer; }
+        .tab-item { display: flex; flex-direction: column; align-items: center; color: #8E8E93; font-size: 10px; border:none; background:none; width: 100%; }
         .tab-item.active { color: var(--key-color); }
         
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 7000; display: none; flex-direction: column; }
@@ -103,20 +94,13 @@
     <div class="full-player" id="full" ontouchstart="fpStart(event)" ontouchmove="fpMove(event)" ontouchend="fpEnd(event)">
         <div id="bg-blur"></div>
         <div style="padding:20px; text-align:center;"><div style="width:40px; height:5px; border-radius:3px; background:rgba(255,255,255,0.3); margin:0 auto;"></div></div>
-        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;"><img id="f-img" style="width:75vw; aspect-ratio:1/1; border-radius:12px; object-fit:cover; box-shadow: 0 20px 40px rgba(0,0,0,0.5);"></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;"><img id="f-img" style="width:75vw; aspect-ratio:1/1; border-radius:12px; object-fit:cover; box-shadow: 0 20px 40px rgba(0,0,0,0.5);"></div>
         
         <div class="seeker-container">
-            <div id="f-title" style="font-size:20px; font-weight:800; color:white; margin-bottom: 5px;"></div>
-            <input type="range" class="custom-range" id="seeker" step="0.1" value="0" oninput="handleSeek(this)">
-            <div style="display:flex; justify-content:space-between; color:rgba(255,255,255,0.3); font-size:11px; margin-top:-5px;"><span id="cur-time">0:00</span><span id="dur-time">0:00</span></div>
-            
+            <div id="f-title" style="font-size:20px; font-weight:800; color:white; margin-bottom: 25px;"></div>
             <canvas id="visualizer"></canvas>
-            
-            <div class="volume-container">
-                <i class="fa-solid fa-volume-low"></i>
-                <input type="range" class="custom-range volume-range" id="volume" min="0" max="1" step="0.01" value="0.8" oninput="handleVolume(this)">
-                <i class="fa-solid fa-volume-high"></i>
-            </div>
+            <input type="range" class="custom-range" id="seeker" step="0.1" value="0" oninput="handleSeek(this)">
+            <div style="display:flex; justify-content:space-between; color:rgba(255,255,255,0.4); font-size:11px; margin-top:-5px;"><span id="cur-time">0:00</span><span id="dur-time">0:00</span></div>
         </div>
         
         <div class="player-controls">
@@ -146,7 +130,6 @@
         let isShuffle = false, repeatMode = 0;
         const audio = document.getElementById('audio-element');
 
-        // Visualizer Context
         let audioCtx, analyser, source, bufferLength, dataArray, canvas, ctx;
 
         const req = indexedDB.open("MusicStudioFinalV15", 1);
@@ -156,7 +139,7 @@
             canvas = document.getElementById('visualizer');
             ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth - 70;
-            canvas.height = 50;
+            canvas.height = 40;
         }
 
         function setupAudioContext() {
@@ -166,7 +149,7 @@
             source = audioCtx.createMediaElementSource(audio);
             source.connect(analyser);
             analyser.connect(audioCtx.destination);
-            analyser.fftSize = 256;
+            analyser.fftSize = 64;
             bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
             draw();
@@ -176,13 +159,14 @@
             requestAnimationFrame(draw);
             analyser.getByteFrequencyData(dataArray);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const barWidth = (canvas.width / bufferLength) * 2.5;
+            const barWidth = (canvas.width / bufferLength) * 2;
             let barHeight, x = 0;
             for(let i = 0; i < bufferLength; i++) {
-                barHeight = dataArray[i] / 2.5;
-                ctx.fillStyle = `rgba(197, 149, 107, ${barHeight/100 + 0.2})`;
-                ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-                x += barWidth + 1;
+                barHeight = (dataArray[i] / 255) * canvas.height;
+                ctx.fillStyle = `rgba(197, 149, 107, 0.8)`;
+                // 両端から中央に広がるような鏡面デザイン
+                ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
+                x += barWidth;
             }
         }
 
@@ -190,13 +174,6 @@
             const tx = db.transaction(["songs", "playlists"], "readonly");
             tx.objectStore("songs").getAll().onsuccess = (e) => { tracks = e.target.result; render(); };
             tx.objectStore("playlists").getAll().onsuccess = (e) => { playlists = e.target.result; render(); };
-        }
-
-        function switchTab(view) {
-            currentView = view; currentPlaylistId = null; isEditing = false;
-            document.getElementById('view-lib').className = view === 'library' ? "view-container view-active" : "view-container view-left";
-            document.getElementById('view-playlist').className = view === 'playlist' ? "view-container view-active" : "view-container view-right";
-            render();
         }
 
         function render() {
@@ -230,7 +207,6 @@
                         <div class="swipe-del-btn" onclick="removeFromPlaylist(${idx})">削除</div>
                     </div>
                 `).join('') + `</div>`;
-                
                 new Sortable(document.getElementById('sortable-list'), { handle: '.handle', animation: 150, onEnd: (evt) => {
                     const [moved] = pl.songIds.splice(evt.oldIndex, 1);
                     pl.songIds.splice(evt.newIndex, 0, moved);
@@ -247,7 +223,6 @@
                 const pl = playlists.find(p => p.id === currentPlaylistId);
                 playingTracks = pl.songIds.map(sid => tracks.find(tx => tx.id === sid)).filter(x => x);
             } else playingTracks = tracks;
-            
             currentTrackIdx = playingTracks.findIndex(x => x.id === id);
             if(audio.src) URL.revokeObjectURL(audio.src);
             audio.src = URL.createObjectURL(t.data);
@@ -259,7 +234,6 @@
         }
 
         function handleSeek(el) { audio.currentTime = el.value; updateBar(el); }
-        function handleVolume(el) { audio.volume = el.value; updateBar(el); }
         function updateBar(el) { el.style.backgroundSize = (el.value - el.min) / (el.max - el.min) * 100 + '% 100%'; }
 
         function togglePlay() { audio.paused ? audio.play() : audio.pause(); }
@@ -281,23 +255,19 @@
             if (currentTrackIdx === 0 && repeatMode === 0) { audio.pause(); return; }
             playSong(playingTracks[currentTrackIdx].id, playingTracks);
         }
-
         function prev() {
             if (playingTracks.length === 0) return;
             currentTrackIdx = (currentTrackIdx - 1 + playingTracks.length) % playingTracks.length;
             playSong(playingTracks[currentTrackIdx].id, playingTracks);
         }
-
         function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('btn-shuffle').classList.toggle('active', isShuffle); }
         function toggleRepeat() {
             repeatMode = (repeatMode + 1) % 3;
             document.getElementById('btn-repeat').classList.toggle('active', repeatMode > 0);
             document.getElementById('repeat-badge').style.display = (repeatMode === 2) ? 'flex' : 'none';
         }
-
         function formatTime(s) { return Math.floor(s/60) + ":" + Math.floor(s%60).toString().padStart(2,'0'); }
 
-        // Full Player Swipe
         function fpStart(e) { fpStartY = e.touches[0].clientY; document.getElementById('full').classList.add('dragging'); }
         function fpMove(e) { fpCurrentY = e.touches[0].clientY - fpStartY; if (fpCurrentY > 0) document.getElementById('full').style.transform = `translateY(${fpCurrentY}px)`; }
         function fpEnd() {
@@ -308,7 +278,6 @@
         function openFull() { document.getElementById('full').classList.add('active'); document.getElementById('full').style.transform = `translateY(0)`; }
         function closeFull() { document.getElementById('full').classList.remove('active'); document.getElementById('full').style.transform = `translateY(100%)`; }
 
-        // Swipe List Item
         function handleTouchStart(e) { startX = e.touches[0].clientX; e.currentTarget.style.transition = 'none'; }
         function handleTouchMove(e) {
             let diff = e.touches[0].clientX - startX;
@@ -316,12 +285,11 @@
             if (diff > 0) e.currentTarget.style.transform = `translateX(0)`;
         }
         function handleTouchEnd(e, idx) {
-            let diff = e.changedTouches[0].clientX - startX;
+            let diff = e.changedTouches[0].clientX - startstartX;
             e.currentTarget.style.transition = 'transform 0.2s ease-out';
             e.currentTarget.style.transform = diff < -40 ? 'translateX(-80px)' : 'translateX(0)';
         }
 
-        // Header & Modal Actions
         function handleHeaderLeft() { if(currentPlaylistId) { currentPlaylistId = null; render(); } else { isEditing = !isEditing; render(); } }
         function handleHeaderRight() { if(currentPlaylistId) openPicker(); else if(currentView === 'library') document.getElementById('audio-upload').click(); else createPlaylist(); }
         function openPlaylist(id) { currentPlaylistId = id; isEditing = false; render(); }
@@ -339,9 +307,9 @@
             pl.songIds.splice(idx, 1); savePlaylist(pl);
         }
         function savePlaylist(pl) { db.transaction("playlists","readwrite").objectStore("playlists").put(pl).onsuccess = loadAll; }
-        function createPlaylist() { const n = prompt("プレイリスト名"); if(n) db.transaction("playlists","readwrite").objectStore("playlists").add({name:n, songIds:[], customCover:null}).oncomplete = loadAll; }
-        function deleteSong(id) { if(confirm("曲を削除しますか？")) db.transaction("songs","readwrite").objectStore("songs").delete(id).onsuccess = loadAll; }
-        function deletePlaylist(id) { if(confirm("リストを削除しますか？")) db.transaction("playlists","readwrite").objectStore("playlists").delete(id).onsuccess = loadAll; }
+        function createPlaylist() { const n = prompt("リスト名"); if(n) db.transaction("playlists","readwrite").objectStore("playlists").add({name:n, songIds:[], customCover:null}).oncomplete = loadAll; }
+        function deleteSong(id) { if(confirm("消去？")) db.transaction("songs","readwrite").objectStore("songs").delete(id).onsuccess = loadAll; }
+        function deletePlaylist(id) { if(confirm("削除？")) db.transaction("playlists","readwrite").objectStore("playlists").delete(id).onsuccess = loadAll; }
         function renamePlaylist(id) { const pl=playlists.find(p=>p.id===id); const n=prompt("名前変更", pl.name); if(n){ pl.name=n; savePlaylist(pl); } }
         function pickCover(pid) { targetPlaylistId = pid; document.getElementById('cover-upload').click(); }
         let targetPlaylistId = null;
@@ -354,7 +322,6 @@
             };
             reader.readAsDataURL(file);
         };
-
         document.getElementById('audio-upload').onchange = (e) => {
             for (let f of e.target.files) {
                 jsmediatags.read(f, { onSuccess: (tag) => {
@@ -367,8 +334,7 @@
                 }});
             }
         };
-
-        updateBar(document.getElementById('volume'));
+        function switchTab(v) { currentView=v; currentPlaylistId=null; isEditing=false; render(); }
     </script>
 </body>
 </html>
