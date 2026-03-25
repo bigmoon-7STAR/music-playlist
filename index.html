@@ -11,39 +11,39 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* ヘッダー */
         .header { padding: calc(40px + env(safe-area-inset-top)) 20px 10px; background: white; border-bottom: 0.5px solid #ddd; z-index: 100; }
         .header-top { display: flex; justify-content: space-between; align-items: center; }
         #content { flex: 1; overflow-y: auto; padding-bottom: 180px; }
         
+        /* 並び替えメニュー */
+        .sort-bar { padding: 10px 20px; display: flex; gap: 10px; overflow-x: auto; white-space: nowrap; background: #f9f9f9; border-bottom: 0.5px solid #eee; }
+        .sort-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #ddd; background: white; font-size: 12px; color: #666; cursor: pointer; }
+        .sort-btn.active { background: var(--key-color); color: white; border-color: var(--key-color); }
+
         /* 表示形式 */
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 15px; padding: 20px; }
         .list-view { display: flex; flex-direction: column; padding: 10px 20px; }
-        .list-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 0.5px solid #f0f0f0; cursor: pointer; }
+        .list-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 0.5px solid #f0f0f0; }
         .list-item img { width: 50px; height: 50px; border-radius: 6px; margin-right: 15px; object-fit: cover; }
         .list-info { flex: 1; overflow: hidden; }
-        .list-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-title { font-size: 15px; font-weight: 600; }
         .list-artist { font-size: 12px; color: #8e8e93; }
 
-        .card { position: relative; cursor: pointer; }
-        .card-img { width: 100%; aspect-ratio: 1/1; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .del-badge { position: absolute; top: -8px; left: -8px; width: 26px; height: 26px; background: #FF3B30; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; border: 2px solid white; z-index: 10; }
-        .editing .del-badge { display: flex; }
+        /* 再生バー（シークバー） */
+        .seeker-container { width: 100%; padding: 0 40px; margin-top: 20px; }
+        .seeker { width: 100%; height: 4px; -webkit-appearance: none; background: rgba(255,255,255,0.3); border-radius: 2px; outline: none; }
+        .seeker::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: white; border-radius: 50%; cursor: pointer; }
+        .time-info { display: flex; justify-content: space-between; color: rgba(255,255,255,0.6); font-size: 11px; margin-top: 8px; }
 
-        /* ミニプレイヤー */
         .mini-player { position: fixed; bottom: calc(75px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 64px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(25px); border-radius: 14px; display: none; align-items: center; padding: 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 2000; }
-
-        /* フルプレイヤー（スワイプ用設定） */
-        .full-player { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); visibility: hidden; will-change: transform; }
+        .full-player { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); visibility: hidden; }
         .full-player.active { transform: translateY(0); visibility: visible; }
-        #bg-blur { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(60px) brightness(0.5); background-size: cover; opacity: 0; transition: opacity 0.6s ease; }
+        #bg-blur { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(60px) brightness(0.5); background-size: cover; opacity: 0; }
         .full-player.active #bg-blur { opacity: 1; }
 
-        /* タブバー */
         .tab-bar { position: fixed; bottom: 0; width: 100%; height: calc(60px + env(safe-area-inset-bottom)); background: rgba(255,255,255,0.9); backdrop-filter: blur(20px); border-top: 0.5px solid #ddd; display: flex; justify-content: space-around; padding-top: 10px; z-index: 500; }
         .tab-item { display: flex; flex-direction: column; align-items: center; color: #8E8E93; font-size: 10px; border:none; background:none; width: 100%; }
         .tab-item.active { color: var(--key-color); }
-        .tab-item i { font-size: 22px; margin-bottom: 4px; }
         
         #picker-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 6000; display: none; flex-direction: column; transform: translateY(100%); transition: transform 0.4s ease; }
         #picker-modal.active { display: flex; transform: translateY(0); }
@@ -59,6 +59,14 @@
         </div>
     </div>
 
+    <div id="sort-container" style="display:none;">
+        <div class="sort-bar">
+            <button class="sort-btn active" id="sort-added" onclick="changeSort('added')">追加順</button>
+            <button class="sort-btn" id="sort-year" onclick="changeSort('year')">発行日順</button>
+            <button class="sort-btn" id="sort-custom" onclick="changeSort('custom')">カスタム</button>
+        </div>
+    </div>
+
     <div id="content"><div id="main-display"></div></div>
 
     <div class="mini-player" id="mini" onclick="openFull()">
@@ -69,26 +77,27 @@
 
     <div class="full-player" id="full">
         <div id="bg-blur"></div>
-        <div id="drag-handle" style="padding: 20px; width: 100%; cursor: grab;">
-            <div style="width:40px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); margin: 0 auto;"></div>
-        </div>
-        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events: none;">
-            <img id="f-img" style="width:80vw; aspect-ratio:1/1; border-radius:15px; object-fit:cover; pointer-events: auto;">
-            <div style="width:100%; padding: 40px; color:white; pointer-events: auto;">
-                <div id="f-title" style="font-size:24px; font-weight:800;"></div>
-                <div id="f-artist" style="font-size:18px; color:var(--key-color); margin-top:5px;"></div>
+        <div onclick="closeFull()" style="padding: 20px; width: 100%; cursor: grab;"><div style="width:40px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); margin: 0 auto;"></div></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <img id="f-img" style="width:75vw; aspect-ratio:1/1; border-radius:15px; object-fit:cover; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+            <div style="width:100%; padding: 30px 40px 0; color:white;">
+                <div id="f-title" style="font-size:22px; font-weight:800;"></div>
+                <div id="f-artist" style="font-size:16px; color:var(--key-color); margin-top:5px;"></div>
+            </div>
+            
+            <div class="seeker-container">
+                <input type="range" class="seeker" id="seeker" value="0" step="0.1" oninput="manualSeek(this.value)">
+                <div class="time-info">
+                    <span id="cur-time">0:00</span>
+                    <span id="dur-time">0:00</span>
+                </div>
             </div>
         </div>
-        <div style="padding-bottom: 80px; display:flex; justify-content:space-around; align-items:center; color:white;">
-            <i class="fa-solid fa-backward-step" style="font-size:32px;" onclick="prev()"></i>
-            <i id="f-pp" class="fa-solid fa-play" style="font-size:60px;" onclick="togglePlay()"></i>
-            <i class="fa-solid fa-forward-step" style="font-size:32px;" onclick="next()"></i>
+        <div style="padding-bottom: 60px; display:flex; justify-content:space-around; align-items:center; color:white;">
+            <i class="fa-solid fa-backward-step" style="font-size:30px;" onclick="prev()"></i>
+            <i id="f-pp" class="fa-solid fa-play" style="font-size:55px;" onclick="togglePlay()"></i>
+            <i class="fa-solid fa-forward-step" style="font-size:30px;" onclick="next()"></i>
         </div>
-    </div>
-
-    <div id="picker-modal">
-        <div class="header"><div class="header-top"><button onclick="closePicker()" style="color:var(--key-color); border:none; background:none;">キャンセル</button><h2>曲を追加</h2><button onclick="savePickerSelection()" style="color:var(--key-color); font-weight:bold; border:none; background:none;">完了</button></div></div>
-        <div class="picker-list" id="picker-list" style="overflow-y:auto; flex:1; padding:20px;"></div>
     </div>
 
     <div class="tab-bar">
@@ -96,17 +105,21 @@
         <button class="tab-item" onclick="switchTab('playlist')" id="tab-play"><i class="fa-solid fa-music"></i><span>プレイリスト</span></button>
     </div>
 
+    <div id="picker-modal">
+        <div class="header"><div class="header-top"><button onclick="closePicker()" style="color:var(--key-color); border:none; background:none;">キャンセル</button><h2>曲を追加</h2><button onclick="savePickerSelection()" style="color:var(--key-color); font-weight:bold; border:none; background:none;">完了</button></div></div>
+        <div class="picker-list" id="picker-list" style="overflow-y:auto; flex:1; padding:20px;"></div>
+    </div>
+
     <input type="file" id="audio-upload" multiple style="display:none">
     <audio id="audio-element"></audio>
 
     <script>
         let db, tracks = [], playlists = [], isEditing = false, currentView = 'library', currentPlaylistId = null;
-        let selectedTrackIds = [], currentTrackIdx = -1;
+        let selectedTrackIds = [], currentTrackIdx = -1, currentSort = 'added';
         const audio = document.getElementById('audio-element');
-        const fullPlayer = document.getElementById('full');
+        const seeker = document.getElementById('seeker');
 
-        // DB初期化
-        const req = indexedDB.open("MusicStudioFinalV4", 1);
+        const req = indexedDB.open("MusicStudioFinalV5", 1);
         req.onupgradeneeded = (e) => {
             let d = e.target.result;
             d.createObjectStore("songs", {keyPath:"id", autoIncrement:true});
@@ -120,40 +133,74 @@
             tx.objectStore("playlists").getAll().onsuccess = (e) => { playlists = e.target.result; render(); };
         }
 
-        // --- スワイプで閉じるロジック ---
-        let startY = 0;
-        let currentY = 0;
-
-        fullPlayer.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].clientY;
-            fullPlayer.style.transition = 'none';
-        }, { passive: true });
-
-        fullPlayer.addEventListener('touchmove', (e) => {
-            currentY = e.touches[0].clientY;
-            let diff = currentY - startY;
-            if (diff > 0) {
-                fullPlayer.style.transform = `translateY(${diff}px)`;
+        // --- 再生バー更新ロジック ---
+        audio.ontimeupdate = () => {
+            if (!isNaN(audio.duration)) {
+                seeker.max = audio.duration;
+                seeker.value = audio.currentTime;
+                document.getElementById('cur-time').innerText = formatTime(audio.currentTime);
+                document.getElementById('dur-time').innerText = formatTime(audio.duration);
             }
-        }, { passive: true });
+        };
+        function manualSeek(val) { audio.currentTime = val; }
+        function formatTime(s) {
+            let m = Math.floor(s / 60);
+            let sec = Math.floor(s % 60);
+            return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+        }
 
-        fullPlayer.addEventListener('touchend', (e) => {
-            let diff = e.changedTouches[0].clientY - startY;
-            fullPlayer.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
-            if (diff > 120) {
-                closeFull();
+        // --- 並び替えロジック ---
+        function changeSort(type) {
+            currentSort = type;
+            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`sort-${type}`).classList.add('active');
+            render();
+        }
+
+        function getSortedSongs(songIds) {
+            let list = tracks.filter(t => songIds.includes(t.id));
+            if (currentSort === 'year') {
+                return list.sort((a, b) => (b.year || 0) - (a.year || 0)); // 新しい順
+            } else if (currentSort === 'custom') {
+                return list.sort((a, b) => a.name.localeCompare(b.name)); // カスタム（例として名前順）
+            }
+            return list; // 追加順（デフォルト）
+        }
+
+        // --- 表示系 ---
+        function switchTab(view) { currentView = view; currentPlaylistId = null; isEditing = false; render(); }
+        function render() {
+            const display = document.getElementById('main-display');
+            const title = document.getElementById('view-title');
+            const leftBtn = document.getElementById('left-btn');
+            const sortBar = document.getElementById('sort-container');
+            
+            document.getElementById('tab-lib').classList.toggle('active', currentView === 'library');
+            document.getElementById('tab-play').classList.toggle('active', currentView === 'playlist');
+
+            if (currentView === 'library') {
+                title.innerText = "ライブラリ"; leftBtn.innerText = isEditing ? "完了" : "編集";
+                sortBar.style.display = 'none';
+                display.className = "grid";
+                display.innerHTML = tracks.map(t => `<div class="card" onclick="playSong(${t.id})"><img src="${t.cover || ''}" class="card-img" style="border-radius:12px; width:100%; aspect-ratio:1/1; object-fit:cover;"><div style="margin-top:8px; font-size:14px; font-weight:600;">${t.name}</div></div>`).join('');
+            } else if (currentPlaylistId === null) {
+                title.innerText = "プレイリスト"; leftBtn.innerText = isEditing ? "完了" : "編集";
+                sortBar.style.display = 'none';
+                display.className = "grid";
+                display.innerHTML = playlists.map(p => `<div class="card" onclick="openPlaylist(${p.id})"><img src="${p.cover || ''}" class="card-img" style="background:#eee; border-radius:12px; width:100%; aspect-ratio:1/1; object-fit:cover;"><div style="margin-top:8px; font-size:14px; font-weight:600;">${p.name}</div></div>`).join('');
             } else {
-                fullPlayer.style.transform = 'translateY(0)';
+                const pl = playlists.find(p => p.id === currentPlaylistId);
+                title.innerText = pl.name; leftBtn.innerText = "戻る";
+                sortBar.style.display = 'block';
+                display.className = "list-view";
+                const sorted = getSortedSongs(pl.songIds);
+                display.innerHTML = sorted.map(t => `<div class="list-item" onclick="playSong(${t.id})"><img src="${t.cover || ''}"><div class="list-info"><div class="list-title">${t.name}</div><div class="list-artist">${t.artist}</div></div></div>`).join('');
             }
-        });
+        }
 
-        function openFull() { fullPlayer.classList.add('active'); fullPlayer.style.transform = 'translateY(0)'; }
-        function closeFull() { fullPlayer.classList.remove('active'); fullPlayer.style.transform = 'translateY(100%)'; }
-
-        // --- 再生系 ---
+        // --- 再生操作 ---
         function playSong(id) {
             const t = tracks.find(x => x.id === id);
-            currentTrackIdx = tracks.indexOf(t);
             audio.src = URL.createObjectURL(t.data);
             document.getElementById('m-title').innerText = t.name;
             document.getElementById('m-img').src = t.cover || '';
@@ -164,68 +211,13 @@
             document.getElementById('mini').style.display = 'flex';
             audio.play();
         }
-
         function togglePlay() { audio.paused ? audio.play() : audio.pause(); }
         audio.onplay = () => { document.getElementById('m-pp').className = 'fa-solid fa-pause'; document.getElementById('f-pp').className = 'fa-solid fa-pause'; };
         audio.onpause = () => { document.getElementById('m-pp').className = 'fa-solid fa-play'; document.getElementById('f-pp').className = 'fa-solid fa-play'; };
-        
-        function next() { currentTrackIdx = (currentTrackIdx + 1) % tracks.length; playSong(tracks[currentTrackIdx].id); }
-        function prev() { currentTrackIdx = (currentTrackIdx - 1 + tracks.length) % tracks.length; playSong(tracks[currentTrackIdx].id); }
+        function openFull() { document.getElementById('full').classList.add('active'); }
+        function closeFull() { document.getElementById('full').classList.remove('active'); }
 
-        // --- 表示系 ---
-        function switchTab(view) { currentView = view; currentPlaylistId = null; isEditing = false; render(); }
-        function render() {
-            const display = document.getElementById('main-display');
-            const title = document.getElementById('view-title');
-            const leftBtn = document.getElementById('left-btn');
-            document.getElementById('tab-lib').classList.toggle('active', currentView === 'library');
-            document.getElementById('tab-play').classList.toggle('active', currentView === 'playlist');
-
-            if (currentView === 'library') {
-                title.innerText = "ライブラリ"; leftBtn.innerText = isEditing ? "完了" : "編集";
-                display.className = "grid";
-                display.innerHTML = tracks.map(t => `<div class="card ${isEditing ? 'editing' : ''}" onclick="${isEditing ? '' : `playSong(${t.id})`}"><div class="del-badge" onclick="event.stopPropagation(); deleteTrack(${t.id})"><i class="fa-solid fa-minus"></i></div><img src="${t.cover || ''}" class="card-img"><div style="margin-top:8px; font-size:14px; font-weight:600;">${t.name}</div><div style="font-size:11px; color:#8e8e93;">${t.artist}</div></div>`).join('');
-            } else if (currentPlaylistId === null) {
-                title.innerText = "プレイリスト"; leftBtn.innerText = isEditing ? "完了" : "編集";
-                display.className = "grid";
-                display.innerHTML = playlists.map(p => `<div class="card ${isEditing ? 'editing' : ''}" onclick="${isEditing ? '' : `openPlaylist(${p.id})`}"><div class="del-badge" onclick="event.stopPropagation(); deletePlaylist(${p.id})"><i class="fa-solid fa-minus"></i></div><img src="${p.cover || ''}" class="card-img" style="background:#eee"><div style="margin-top:8px; font-size:14px; font-weight:600;">${p.name}</div><div style="font-size:11px; color:#8e8e93;">${p.songIds.length}曲</div></div>`).join('');
-            } else {
-                const pl = playlists.find(p => p.id === currentPlaylistId);
-                title.innerText = pl.name; leftBtn.innerText = "戻る";
-                display.className = "list-view";
-                const plSongs = tracks.filter(t => pl.songIds.includes(t.id));
-                display.innerHTML = plSongs.map(t => `<div class="list-item" onclick="playSong(${t.id})"><img src="${t.cover || ''}"><div class="list-info"><div class="list-title">${t.name}</div><div class="list-artist">${t.artist}</div></div></div>`).join('');
-            }
-        }
-
-        // --- その他機能 ---
-        function handleHeaderLeft() { if (currentPlaylistId !== null) { currentPlaylistId = null; render(); } else { isEditing = !isEditing; render(); } }
-        function handleHeaderRight() { if (currentView === 'library') document.getElementById('audio-upload').click(); else if (currentPlaylistId === null) createPlaylist(); else openPicker(); }
-        function createPlaylist() { const name = prompt("プレイリスト名"); if (name) db.transaction("playlists", "readwrite").objectStore("playlists").add({name, cover: "", songIds: []}).oncomplete = loadAll; }
-        function openPlaylist(id) { currentPlaylistId = id; render(); }
-        function deleteTrack(id) { if(confirm("削除？")) db.transaction("songs","readwrite").objectStore("songs").delete(id).onsuccess = loadAll; }
-        function deletePlaylist(id) { if(confirm("削除？")) db.transaction("playlists","readwrite").objectStore("playlists").delete(id).onsuccess = loadAll; }
-
-        // --- ピッカー修正 ---
-        function openPicker() {
-            const pl = playlists.find(p => p.id === currentPlaylistId);
-            selectedTrackIds = [...pl.songIds];
-            const list = document.getElementById('picker-list');
-            list.innerHTML = tracks.map(t => `<div class="picker-item ${selectedTrackIds.includes(t.id) ? 'selected' : ''}" onclick="togglePicker(${t.id}, this)" style="display:flex; align-items:center; padding:10px; border-bottom:1px solid #eee;"><img src="${t.cover||''}" style="width:40px; height:40px; margin-right:10px;"><div style="flex:1;">${t.name}</div><i class="fa-solid fa-circle-check picker-check" style="${selectedTrackIds.includes(t.id)?'color:var(--key-color)':''}"></i></div>`).join('');
-            document.getElementById('picker-modal').style.display = 'flex';
-            setTimeout(() => document.getElementById('picker-modal').classList.add('active'), 10);
-        }
-        function togglePicker(id, el) {
-            if (selectedTrackIds.includes(id)) { selectedTrackIds = selectedTrackIds.filter(tid => tid !== id); el.querySelector('i').style.color = '#ddd'; }
-            else { selectedTrackIds.push(id); el.querySelector('i').style.color = 'var(--key-color)'; }
-        }
-        function savePickerSelection() {
-            const pl = playlists.find(p => p.id === currentPlaylistId);
-            pl.songIds = selectedTrackIds;
-            db.transaction("playlists","readwrite").objectStore("playlists").put(pl).onsuccess = () => { closePicker(); loadAll(); };
-        }
-        function closePicker() { document.getElementById('picker-modal').classList.remove('active'); setTimeout(() => { document.getElementById('picker-modal').style.display = 'none'; }, 400); }
-
+        // --- ファイルアップロード（発行日取得対応） ---
         document.getElementById('audio-upload').onchange = (e) => {
             for (let f of e.target.files) {
                 jsmediatags.read(f, { onSuccess: (tag) => {
@@ -234,10 +226,20 @@
                         for(let i=0; i<d.length; i++) s += String.fromCharCode(d[i]);
                         c = `data:${tag.tags.picture.format};base64,${btoa(s)}`;
                     }
-                    db.transaction("songs","readwrite").objectStore("songs").add({ name: tag.tags.title || f.name, artist: tag.tags.artist || "不明", cover: c, data: f }).oncomplete = loadAll;
+                    db.transaction("songs","readwrite").objectStore("songs").add({ 
+                        name: tag.tags.title || f.name, 
+                        artist: tag.tags.artist || "不明", 
+                        year: parseInt(tag.tags.year) || 0, // 発行日（年）を保存
+                        cover: c, data: f 
+                    }).oncomplete = loadAll;
                 }});
             }
         };
+
+        function handleHeaderLeft() { if (currentPlaylistId !== null) { currentPlaylistId = null; render(); } else { isEditing = !isEditing; render(); } }
+        function handleHeaderRight() { if (currentView === 'library') document.getElementById('audio-upload').click(); else if (currentPlaylistId === null) createPlaylist(); else openPicker(); }
+        function createPlaylist() { const name = prompt("プレイリスト名"); if (name) db.transaction("playlists", "readwrite").objectStore("playlists").add({name, cover: "", songIds: []}).oncomplete = loadAll; }
+        function openPlaylist(id) { currentPlaylistId = id; render(); }
     </script>
 </body>
 </html>
