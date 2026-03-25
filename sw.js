@@ -1,3 +1,11 @@
+// --- 1. 変数の宣言 ---
+let db, tracks = [], playlists = [], isEditing = false, currentView = 'library', currentPlaylistId = null;
+let editingTrackId = null, selectedTrackIds = [], currentTrackIdx = -1;
+let playingTracks = []; // ← これを追加！今再生している「範囲」を覚えるための変数です
+let isShuffle = false;  // ← ついでにシャッフル状態もここで宣言
+let repeatMode = 0;     // ← リピート状態もここで宣言
+const audio = document.getElementById('audio-element');
+
 // --- 1. 変数の宣言（一貫性を持たせる） ---
 let db, tracks = [], playlists = [], isEditing = false, currentView = 'library', currentPlaylistId = null;
 let editingTrackId = null, selectedTrackIds = [], currentTrackIdx = -1;
@@ -62,6 +70,84 @@ function savePickerSelection() {
         alert("保存に失敗しました。");
     };
 }
+
+// --- 6. 再生ロジック (シャッフル・リピート・プレイリスト対応) ---
+function playSong(id) {
+    // 再生範囲を決定
+    if (currentPlaylistId !== null) {
+        const pl = playlists.find(p => p.id === currentPlaylistId);
+        playingTracks = tracks.filter(t => pl.songIds.includes(t.id));
+    } else {
+        playingTracks = tracks;
+    }
+
+    const t = tracks.find(x => x.id === id);
+    if (!t) return;
+    
+    // 再生リスト内での現在の順番を特定
+    currentTrackIdx = playingTracks.findIndex(x => x.id === id);
+
+    if (audio.src) URL.revokeObjectURL(audio.src);
+    audio.src = URL.createObjectURL(t.data);
+
+    // ミニプレイヤーの画像制御
+    const mImg = document.getElementById('m-img');
+    mImg.src = t.cover || '';
+    mImg.style.display = t.cover ? 'block' : 'none'; 
+
+    document.getElementById('m-title').innerText = t.name;
+    document.getElementById('f-title').innerText = t.name;
+    document.getElementById('f-artist').innerText = t.artist || '不明';
+    document.getElementById('f-img').src = t.cover || '';
+    document.getElementById('bg-blur').style.backgroundImage = t.cover ? `url(${t.cover})` : 'none';
+    document.getElementById('mini').style.display = 'flex';
+    audio.play();
+}
+
+function toggleShuffle() {
+    isShuffle = !isShuffle;
+    document.getElementById('btn-shuffle').style.color = isShuffle ? 'var(--key-color)' : 'rgba(255,255,255,0.5)';
+}
+
+function toggleRepeat() {
+    repeatMode = (repeatMode + 1) % 3;
+    const btn = document.getElementById('btn-repeat');
+    const badge = document.getElementById('repeat-badge');
+    if (repeatMode === 0) { btn.style.color = 'rgba(255,255,255,0.5)'; badge.style.display = 'none'; }
+    else if (repeatMode === 1) { btn.style.color = 'var(--key-color)'; badge.style.display = 'none'; }
+    else { btn.style.color = 'var(--key-color)'; badge.style.display = 'block'; }
+}
+
+function next() { 
+    if (playingTracks.length === 0) return;
+    if (isShuffle) {
+        let nextIdx = Math.floor(Math.random() * playingTracks.length);
+        if (nextIdx === currentTrackIdx && playingTracks.length > 1) nextIdx = (nextIdx + 1) % playingTracks.length;
+        playSong(playingTracks[nextIdx].id);
+    } else {
+        if (currentTrackIdx < playingTracks.length - 1) {
+            playSong(playingTracks[currentTrackIdx + 1].id); 
+        } else if (repeatMode === 1) {
+            playSong(playingTracks[0].id); 
+        }
+    }
+}
+
+function prev() { 
+    if (audio.currentTime > 3) {
+        audio.currentTime = 0;
+    } else if (currentTrackIdx > 0) {
+        playSong(playingTracks[currentTrackIdx - 1].id); 
+    } else if (repeatMode === 1) {
+        playSong(playingTracks[playingTracks.length - 1].id);
+    }
+}
+
+audio.onended = () => { 
+    if (repeatMode === 2) { audio.currentTime = 0; audio.play(); } 
+    else { next(); }
+};
+
 
 // --- 5. モーダルを閉じる ---
 function closePicker() {
