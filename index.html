@@ -3,86 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Music Studio</title>
+    <title>Music Studio Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
-        :root { --key-color: #FA2D55; --bg-color: #FFFFFF; --secondary-bg: #F2F2F7; --text-sub: #8E8E93; }
+        :root { --key-color: #FA2D55; --bg-color: #FFFFFF; --secondary-bg: #F2F2F7; --text-sub: #8E8E93; --danger: #FF3B30; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; background: var(--bg-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* ヘッダー */
+        /* ライブラリUI */
         .header { padding: calc(40px + env(safe-area-inset-top)) 20px 10px; background: white; }
-        .header-top { display: flex; justify-content: space-between; align-items: baseline; }
-        h2 { margin: 0; font-size: 32px; font-weight: 800; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 15px; padding: 20px; padding-bottom: 160px; }
         
-        /* 検索・タブ */
-        .search-area { padding: 0 20px 15px; display: flex; gap: 10px; align-items: center; }
-        .search-input { flex: 1; padding: 12px 15px; border-radius: 10px; border: none; background: var(--secondary-bg); font-size: 16px; outline: none; }
-        .tabs { display: flex; padding: 0 20px; border-bottom: 0.5px solid #D1D1D6; gap: 20px; }
-        .tab { padding: 10px 0; font-size: 16px; font-weight: 600; color: var(--text-sub); border-bottom: 2.5px solid transparent; }
-        .tab.active { color: var(--key-color); border-bottom-color: var(--key-color); }
+        /* カードのデザイン */
+        .card { position: relative; width: 100%; cursor: pointer; }
+        .card-img { width: 100%; aspect-ratio: 1/1; border-radius: 12px; object-fit: cover; box-shadow: 0 8px 16px rgba(0,0,0,0.1); transition: 0.2s; }
+        .card:active .card-img { transform: scale(0.96); opacity: 0.8; }
 
-        /* コンテンツエリア */
-        .content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 140px; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 15px; }
-        .card { width: 100%; cursor: pointer; }
-        .card-img { width: 100%; aspect-ratio: 1/1; border-radius: 12px; object-fit: cover; background: #eee; box-shadow: 0 8px 16px rgba(0,0,0,0.08); }
-        .pl-icon { width: 100%; aspect-ratio: 1/1; border-radius: 12px; background: #E5E5EA; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--key-color); }
+        /* 削除ボタン（カード右上に配置） */
+        .del-btn {
+            position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; border: none; opacity: 0; transition: opacity 0.3s;
+        }
+        .edit-mode .del-btn { opacity: 1; } /* 編集モード時のみ表示 */
 
-        /* プレイヤー共通 */
-        .mini-player { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 64px; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(25px); border-radius: 14px; display: none; align-items: center; padding: 0 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); z-index: 1000; }
-        .full-player { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; display: none; flex-direction: column; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateY(100%); touch-action: none; }
+        /* 編集ボタン */
+        .edit-toggle { background: none; border: none; color: var(--key-color); font-weight: 600; font-size: 16px; }
+
+        /* ミニ・フルプレイヤー（前回同様） */
+        .mini-player { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 64px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(30px); border-radius: 14px; display: none; align-items: center; padding: 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 1000; }
+        .full-player { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; z-index: 2000; display: none; flex-direction: column; transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1); transform: translateY(100%); touch-action: none; }
         .full-player.active { transform: translateY(0); display: flex; }
-        #bg-blur { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(60px) brightness(0.6); background-size: cover; background-position: center; }
-        .main-art { width: 100%; max-width: 340px; aspect-ratio: 1/1; border-radius: 18px; object-fit: contain; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+        #bg-blur { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(80px) brightness(0.5); background-size: cover; background-position: center; }
+        .main-art { width: 82vw; height: 82vw; max-width: 340px; border-radius: 14px; object-fit: contain; box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
+        .controls { padding: 20px 40px calc(40px + env(safe-area-inset-bottom)); width: 100%; color: white; }
     </style>
 </head>
-<body>
+<body class="">
 
     <div class="header">
-        <div class="header-top">
-            <h2 id="view-title">ライブラリ</h2>
-            <div style="display: flex; gap: 15px;">
-                <button id="add-btn" onclick="document.getElementById('audio-upload').click()" style="background:none; border:none; color:var(--key-color); font-size:26px;"><i class="fa-solid fa-circle-plus"></i></button>
-                <button id="create-pl-btn" onclick="createNewPlaylist()" style="display:none; background:none; border:none; color:var(--key-color); font-size:26px;"><i class="fa-solid fa-folder-plus"></i></button>
-            </div>
-            <input type="file" id="audio-upload" multiple style="display:none">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button class="edit-toggle" id="edit-btn" onclick="toggleEdit()">編集</button>
+            <h2 id="view-title" style="margin:0; font-size: 20px;">ライブラリ</h2>
+            <button onclick="document.getElementById('audio-upload').click()" style="background:none; border:none; color:var(--key-color); font-size:26px;"><i class="fa-solid fa-circle-plus"></i></button>
         </div>
     </div>
 
-    <div class="search-area">
-        <input type="text" id="q" class="search-input" placeholder="検索" oninput="render()">
-    </div>
+    <div id="main" style="overflow-y:auto; flex:1;"></div>
 
-    <div class="tabs">
-        <div class="tab active" id="tab-lib" onclick="switchTab('lib')">ライブラリ</div>
-        <div class="tab" id="tab-pl" onclick="switchTab('pl')">プレイリスト</div>
-    </div>
-
-    <div class="content" id="main"></div>
+    <input type="file" id="audio-upload" multiple style="display:none">
 
     <div class="mini-player" id="mini" onclick="openFull()">
         <img id="m-img" style="width:44px; height:44px; border-radius:6px; margin-right:12px; object-fit:cover;">
         <div style="flex:1; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="m-title"></div>
-        <i id="m-pp" class="fa-solid fa-play" style="font-size:24px; padding: 10px;" onclick="event.stopPropagation(); toggle();"></i>
+        <i id="m-pp" class="fa-solid fa-play" style="font-size:22px; padding:10px;" onclick="event.stopPropagation(); toggle();"></i>
     </div>
 
     <div class="full-player" id="full">
         <div id="bg-blur"></div>
-        <div id="drag-handle" style="padding: 20px; text-align: center;"><div style="width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.4); margin: 0 auto;"></div></div>
-        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 0 30px;">
+        <div id="drag-handle" style="padding: 15px; text-align: center;"><div style="width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.3); margin:0 auto;"></div></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 35px;">
             <img id="f-img" class="main-art">
-            <div style="width:100%; margin-top:35px; color:white;">
+            <div style="width:100%; margin-top:40px; color:white;">
                 <div id="f-title" style="font-size:24px; font-weight:800;"></div>
-                <div id="f-artist" style="font-size:19px; color:var(--key-color); margin-top:5px;"></div>
+                <div id="f-artist" style="font-size:19px; color:var(--key-color); margin-top:4px;"></div>
             </div>
         </div>
-        <div style="padding: 40px 40px calc(40px + env(safe-area-inset-bottom));">
+        <div class="controls">
             <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:40px;">
-                <i class="fa-solid fa-backward-step" style="font-size:32px; color:white;" onclick="prev()"></i>
-                <i id="f-pp" class="fa-solid fa-play" style="font-size:64px; color:white;" onclick="toggle()"></i>
-                <i class="fa-solid fa-forward-step" style="font-size:32px; color:white;" onclick="next()"></i>
+                <i class="fa-solid fa-backward-step" style="font-size:32px;" onclick="prev()"></i>
+                <i id="f-pp" class="fa-solid fa-play" style="font-size:60px;" onclick="toggle()"></i>
+                <i class="fa-solid fa-forward-step" style="font-size:32px;" onclick="next()"></i>
             </div>
         </div>
     </div>
@@ -90,85 +83,58 @@
     <audio id="audio"></audio>
 
     <script>
-        let db, tracks = [], playlists = [], currentTab = 'lib', currentPLId = null, curIdx = -1;
+        let db, tracks = [], isEditMode = false, curIdx = -1;
         const player = document.getElementById('audio');
 
         const req = indexedDB.open("MusicStudioFinalDB", 6);
-        req.onupgradeneeded = (e) => {
-            let d = e.target.result;
-            if(!d.objectStoreNames.contains("songs")) d.createObjectStore("songs", {keyPath:"id", autoIncrement:true});
-            if(!d.objectStoreNames.contains("playlists")) d.createObjectStore("playlists", {keyPath:"id", autoIncrement:true});
-        };
         req.onsuccess = (e) => { db = e.target.result; load(); };
 
         function load() {
-            const trans = db.transaction(["songs", "playlists"], "readonly");
-            trans.objectStore("songs").getAll().onsuccess = (e) => { tracks = e.target.result; render(); };
-            trans.objectStore("playlists").getAll().onsuccess = (e) => { playlists = e.target.result; };
+            db.transaction("songs").objectStore("songs").getAll().onsuccess = (e) => {
+                tracks = e.target.result; render();
+            };
         }
 
         function render() {
             const main = document.getElementById('main');
-            main.innerHTML = '';
-            const q = document.getElementById('q').value.toLowerCase();
+            const container = document.body;
+            if(isEditMode) container.classList.add('edit-mode'); else container.classList.remove('edit-mode');
 
-            if (currentTab === 'lib') {
-                const list = tracks.filter(t => t.name.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q));
-                const grid = document.createElement('div'); grid.className = 'grid';
-                list.forEach(t => {
-                    grid.innerHTML += `<div class="card" onclick="play(${t.id})"><img src="${t.cover||''}" class="card-img"><div style="margin-top:8px; font-size:14px; font-weight:600;">${t.name}</div></div>`;
-                });
-                main.appendChild(grid);
-            } else if (currentTab === 'pl' && currentPLId === null) {
-                const grid = document.createElement('div'); grid.className = 'grid';
-                playlists.forEach(p => {
-                    grid.innerHTML += `<div class="card" onclick="openPlaylist(${p.id})"><div class="pl-icon"><i class="fa-solid fa-music"></i></div><div style="margin-top:8px; font-size:14px; font-weight:600;">${p.name}</div></div>`;
-                });
-                main.appendChild(grid);
-            } else if (currentTab === 'pl' && currentPLId !== null) {
-                const pl = playlists.find(p => p.id === currentPLId);
-                main.innerHTML = `<button onclick="closePlaylist()" style="color:var(--key-color); border:none; background:none; font-weight:600; margin-bottom:15px;"><i class="fa-solid fa-chevron-left"></i> 戻る</button><h3>${pl.name}</h3>`;
-                // プレイリスト内の曲を表示する処理（今回は全曲表示をサンプルとして継続）
-            }
+            main.innerHTML = '<div class="grid">' + tracks.map(t => `
+                <div class="card" onclick="handleCardClick(${t.id})">
+                    <img src="${t.cover||''}" class="card-img">
+                    <button class="del-btn" onclick="event.stopPropagation(); deleteTrack(${t.id})">
+                        <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <div style="margin-top:8px; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.name}</div>
+                    <div style="font-size:12px; color:var(--text-sub);">${t.artist||'不明'}</div>
+                </div>`).join('') + '</div>';
         }
 
-        function switchTab(tab) {
-            currentTab = tab;
-            currentPLId = null;
-            document.getElementById('view-title').innerText = tab === 'lib' ? 'ライブラリ' : 'プレイリスト';
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-' + tab).classList.add('active');
-            document.getElementById('add-btn').style.display = tab === 'lib' ? 'block' : 'none';
-            document.getElementById('create-pl-btn').style.display = tab === 'pl' ? 'block' : 'none';
+        function toggleEdit() {
+            isEditMode = !isEditMode;
+            document.getElementById('edit-btn').innerText = isEditMode ? '完了' : '編集';
             render();
         }
 
-        function openPlaylist(id) { currentPLId = id; render(); }
-        function closePlaylist() { currentPLId = null; render(); }
-        function createNewPlaylist() {
-            const name = prompt("プレイリスト名を入力してください");
-            if (name) {
-                const trans = db.transaction("playlists", "readwrite");
-                trans.objectStore("playlists").add({ name: name, songIds: [] }).oncomplete = load;
-            }
+        function handleCardClick(id) {
+            if (isEditMode) return; // 編集モード中は再生しない
+            play(id);
         }
 
-        // プレイヤー基本機能（スワイプ含む）
-        const full = document.getElementById('full');
-        function openFull() { full.classList.add('active'); }
-        function closeFull() { full.classList.remove('active'); full.style.transform = ''; }
-        
-        let startY = 0;
-        full.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
-        full.addEventListener('touchmove', (e) => {
-            let diff = e.touches[0].clientY - startY;
-            if (diff > 0) { full.style.transform = `translateY(${diff}px)`; full.style.transition = 'none'; }
-        }, { passive: true });
-        full.addEventListener('touchend', (e) => {
-            let diff = e.changedTouches[0].clientY - startY;
-            full.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-            if (diff > 150) closeFull(); else full.style.transform = 'translateY(0)';
-        });
+        function deleteTrack(id) {
+            if (confirm("この曲をライブラリから削除しますか？")) {
+                const trans = db.transaction("songs", "readwrite");
+                trans.objectStore("songs").delete(id).onsuccess = () => {
+                    load();
+                    // 再生中の曲が消されたら止める
+                    if (tracks[curIdx] && tracks[curIdx].id === id) {
+                        player.pause();
+                        document.getElementById('mini').style.display = 'none';
+                    }
+                };
+            }
+        }
 
         function play(id) {
             const t = tracks.find(x => x.id === id);
@@ -184,11 +150,26 @@
             player.play();
         }
 
+        // フルプレイヤーのスワイプ・操作（前回同様）
+        const full = document.getElementById('full');
+        let startY = 0;
+        full.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+        full.addEventListener('touchmove', (e) => {
+            let diff = e.touches[0].clientY - startY;
+            if (diff > 0) { full.style.transform = `translateY(${diff}px)`; full.style.transition = 'none'; }
+        }, { passive: true });
+        full.addEventListener('touchend', (e) => {
+            let diff = e.changedTouches[0].clientY - startY;
+            full.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+            if (diff > 120) closeFull(); else full.style.transform = 'translateY(0)';
+        });
+        function openFull() { full.classList.add('active'); }
+        function closeFull() { full.classList.remove('active'); setTimeout(() => { full.style.transform = ''; }, 400); }
         function toggle() { player.paused ? player.play() : player.pause(); }
         player.onplay = () => { document.getElementById('m-pp').className = 'fa-solid fa-pause'; document.getElementById('f-pp').className = 'fa-solid fa-pause'; };
         player.onpause = () => { document.getElementById('m-pp').className = 'fa-solid fa-play'; document.getElementById('f-pp').className = 'fa-solid fa-play'; };
-        function next() { curIdx++; if(curIdx>=tracks.length) curIdx=0; play(tracks[curIdx].id); }
-        function prev() { curIdx--; if(curIdx<0) curIdx=tracks.length-1; play(tracks[curIdx].id); }
+        function next() { curIdx = (curIdx + 1) % tracks.length; play(tracks[curIdx].id); }
+        function prev() { curIdx = (curIdx - 1 + tracks.length) % tracks.length; play(tracks[curIdx].id); }
 
         document.getElementById('audio-upload').onchange = async (e) => {
             for (let f of e.target.files) {
