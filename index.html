@@ -11,28 +11,16 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* ヘッダー */
+        /* ライブラリ画面 */
         .header { padding: calc(40px + env(safe-area-inset-top)) 20px 10px; background: white; border-bottom: 0.5px solid #ddd; }
         .header-top { display: flex; justify-content: space-between; align-items: center; }
-        h2 { margin: 0; font-size: 22px; font-weight: 800; }
-        .edit-btn { background: none; border: none; color: var(--key-color); font-size: 16px; font-weight: 600; padding: 5px; }
-
-        /* グリッド表示 */
-        #main { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 150px; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 15px; }
-        
-        /* カードと削除ボタン */
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 15px; padding: 20px; padding-bottom: 160px; }
         .card { position: relative; width: 100%; }
         .card-img { width: 100%; aspect-ratio: 1/1; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         
-        .del-badge {
-            position: absolute; top: -8px; left: -8px; width: 26px; height: 26px;
-            background: #FF3B30; color: white; border-radius: 50%;
-            display: none; align-items: center; justify-content: center;
-            font-size: 14px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 10;
-        }
-        .editing .del-badge { display: flex; } /* 編集モード時のみ表示 */
+        /* 削除ボタン */
+        .del-badge { position: absolute; top: -8px; left: -8px; width: 26px; height: 26px; background: #FF3B30; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 14px; border: 2px solid white; z-index: 10; }
+        .editing .del-badge { display: flex; }
 
         /* ミニプレイヤー */
         .mini-player { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 64px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border-radius: 14px; display: none; align-items: center; padding: 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); z-index: 1000; }
@@ -41,19 +29,25 @@
         .full-player { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; display: none; flex-direction: column; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateY(100%); touch-action: none; }
         .full-player.active { transform: translateY(0); display: flex; }
         #bg-blur { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; filter: blur(60px) brightness(0.5); background-size: cover; background-position: center; }
+
+        /* 再生バーのスタイル */
+        .seek-box { width: 100%; margin-top: 25px; }
+        #seeker { width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.3); outline: none; -webkit-appearance: none; }
+        #seeker::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: #fff; border-radius: 50%; }
+        .time-labels { display: flex; justify-content: space-between; color: rgba(255,255,255,0.6); font-size: 12px; margin-top: 8px; font-variant-numeric: tabular-nums; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="header-top">
-            <button class="edit-btn" id="toggle-btn" onclick="toggleEdit()">編集</button>
-            <h2>ライブラリ</h2>
+            <button style="background:none; border:none; color:var(--key-color); font-weight:600;" id="edit-btn" onclick="toggleEdit()">編集</button>
+            <h2 style="margin:0; font-size:18px;">ライブラリ</h2>
             <button onclick="document.getElementById('audio-upload').click()" style="background:none; border:none; color:var(--key-color); font-size:24px;"><i class="fa-solid fa-circle-plus"></i></button>
         </div>
     </div>
 
-    <div id="main">
+    <div id="main" style="overflow-y:auto; flex:1;">
         <div class="grid" id="song-grid"></div>
     </div>
 
@@ -67,14 +61,25 @@
 
     <div class="full-player" id="full">
         <div id="bg-blur"></div>
-        <div style="padding: 20px; text-align: center;" onclick="closeFull()"><div style="width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.3); margin: 0 auto;"></div></div>
+        <div id="drag-handle" style="padding: 20px; text-align: center;"><div style="width:36px; height:5px; border-radius:3px; background:rgba(255,255,255,0.3); margin: 0 auto;"></div></div>
+        
         <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 0 40px;">
             <img id="f-img" style="width:100%; aspect-ratio:1/1; border-radius:15px; object-fit:contain; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
-            <div style="width:100%; margin-top:30px; color:white;">
-                <div id="f-title" style="font-size:24px; font-weight:800;"></div>
+            
+            <div style="width:100%; margin-top:35px; color:white;">
+                <div id="f-title" style="font-size:24px; font-weight:800; letter-spacing:-0.5px;"></div>
                 <div id="f-artist" style="font-size:18px; color:var(--key-color); margin-top:5px;"></div>
+                
+                <div class="seek-box">
+                    <input type="range" id="seeker" value="0" step="0.1">
+                    <div class="time-labels">
+                        <span id="time-cur">0:00</span>
+                        <span id="time-dur">0:00</span>
+                    </div>
+                </div>
             </div>
         </div>
+
         <div style="padding: 40px; display:flex; justify-content:space-around; align-items:center;">
             <i class="fa-solid fa-backward-step" style="font-size:32px; color:white;" onclick="prev()"></i>
             <i id="f-pp" class="fa-solid fa-play" style="font-size:60px; color:white;" onclick="toggle()"></i>
@@ -87,9 +92,9 @@
     <script>
         let db, tracks = [], isEditing = false, curIdx = -1;
         const player = document.getElementById('audio');
+        const seeker = document.getElementById('seeker');
 
-        // データベース初期化
-        const req = indexedDB.open("MusicStudioFinalDB", 7); // バージョンを上げて確実に更新
+        const req = indexedDB.open("MusicStudioFinalDB", 8);
         req.onupgradeneeded = (e) => {
             let d = e.target.result;
             if(!d.objectStoreNames.contains("songs")) d.createObjectStore("songs", {keyPath:"id", autoIncrement:true});
@@ -98,41 +103,29 @@
 
         function load() {
             db.transaction("songs").objectStore("songs").getAll().onsuccess = (e) => {
-                tracks = e.target.result;
-                render();
+                tracks = e.target.result; render();
             };
         }
 
         function render() {
             const grid = document.getElementById('song-grid');
             grid.innerHTML = tracks.map(t => `
-                <div class="card ${isEditing ? 'editing' : ''}" onclick="handleCardClick(${t.id})">
-                    <div class="del-badge" onclick="event.stopPropagation(); deleteTrack(${t.id})">
-                        <i class="fa-solid fa-minus"></i>
-                    </div>
+                <div class="card ${isEditing ? 'editing' : ''}" onclick="isEditing ? null : play(${t.id})">
+                    <div class="del-badge" onclick="event.stopPropagation(); deleteTrack(${t.id})"><i class="fa-solid fa-minus"></i></div>
                     <img src="${t.cover||''}" class="card-img">
-                    <div style="margin-top:8px; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.name}</div>
-                </div>
-            `).join('');
+                    <div style="margin-top:8px; font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.name}</div>
+                </div>`).join('');
         }
 
         function toggleEdit() {
             isEditing = !isEditing;
-            document.getElementById('toggle-btn').innerText = isEditing ? '完了' : '編集';
+            document.getElementById('edit-btn').innerText = isEditing ? '完了' : '編集';
             render();
         }
 
-        function handleCardClick(id) {
-            if (isEditing) return;
-            play(id);
-        }
-
         function deleteTrack(id) {
-            if (confirm("この曲を削除しますか？")) {
-                const trans = db.transaction("songs", "readwrite");
-                trans.objectStore("songs").delete(id).onsuccess = () => {
-                    load(); // 再読み込み
-                };
+            if (confirm("曲を削除しますか？")) {
+                db.transaction("songs", "readwrite").objectStore("songs").delete(id).onsuccess = load;
             }
         }
 
@@ -150,16 +143,39 @@
             player.play();
         }
 
-        // 基本操作
+        // --- 再生バーの更新 ---
+        player.ontimeupdate = () => {
+            if (!isNaN(player.duration)) {
+                seeker.value = (player.currentTime / player.duration) * 100;
+                document.getElementById('time-cur').innerText = formatTime(player.currentTime);
+                document.getElementById('time-dur').innerText = formatTime(player.duration);
+            }
+        };
+        seeker.oninput = () => { player.currentTime = (seeker.value / 100) * player.duration; };
+        function formatTime(s) { let m = Math.floor(s/60); s = Math.floor(s%60); return `${m}:${s<10?'0':''}${s}`; }
+
+        // スワイプで閉じる
+        const full = document.getElementById('full');
+        let startY = 0;
+        full.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+        full.addEventListener('touchmove', (e) => {
+            let diff = e.touches[0].clientY - startY;
+            if (diff > 0) { full.style.transform = `translateY(${diff}px)`; full.style.transition = 'none'; }
+        }, { passive: true });
+        full.addEventListener('touchend', (e) => {
+            let diff = e.changedTouches[0].clientY - startY;
+            full.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+            if (diff > 150) closeFull(); else full.style.transform = 'translateY(0)';
+        });
+
         function toggle() { player.paused ? player.play() : player.pause(); }
         player.onplay = () => { document.getElementById('m-pp').className = 'fa-solid fa-pause'; document.getElementById('f-pp').className = 'fa-solid fa-pause'; };
         player.onpause = () => { document.getElementById('m-pp').className = 'fa-solid fa-play'; document.getElementById('f-pp').className = 'fa-solid fa-play'; };
         function next() { curIdx = (curIdx + 1) % tracks.length; play(tracks[curIdx].id); }
         function prev() { curIdx = (curIdx - 1 + tracks.length) % tracks.length; play(tracks[curIdx].id); }
-        function openFull() { document.getElementById('full').classList.add('active'); }
-        function closeFull() { document.getElementById('full').classList.remove('active'); }
+        function openFull() { full.classList.add('active'); }
+        function closeFull() { full.classList.remove('active'); setTimeout(()=>full.style.transform='', 400); }
 
-        // ファイル追加
         document.getElementById('audio-upload').onchange = (e) => {
             for (let f of e.target.files) {
                 jsmediatags.read(f, { onSuccess: (tag) => {
@@ -168,12 +184,7 @@
                         for(let i=0; i<d.length; i++) s += String.fromCharCode(d[i]);
                         c = `data:${tag.tags.picture.format};base64,${btoa(s)}`;
                     }
-                    db.transaction("songs","readwrite").objectStore("songs").add({
-                        name: tag.tags.title || f.name,
-                        artist: tag.tags.artist || "不明",
-                        cover: c,
-                        data: f
-                    }).oncomplete = load;
+                    db.transaction("songs","readwrite").objectStore("songs").add({name:tag.tags.title||f.name, artist:tag.tags.artist||"不明", cover:c, data:f}).oncomplete = load;
                 }});
             }
         };
