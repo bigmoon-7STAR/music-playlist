@@ -1,113 +1,81 @@
-let db, tracks = [], playlists = [], isEditing = false, currentView = 'library', currentPlaylistId = null;
-let selectedTrackIds = []; 
-const player = document.getElementById('audio');
-
-// 1. データベースの接続（バージョンを上げて確実に初期化）
-const req = indexedDB.open("MusicStudioModernDB", 2); 
-req.onupgradeneeded = (e) => {
-    let d = e.target.result;
-    if(!d.objectStoreNames.contains("songs")) d.createObjectStore("songs", {keyPath:"id", autoIncrement:true});
-    if(!d.objectStoreNames.contains("playlists")) d.createObjectStore("playlists", {keyPath:"id", autoIncrement:true});
-};
-req.onsuccess = (e) => { db = e.target.result; loadAll(); };
-
-// 2. データの読み込み
-function loadAll() {
-    const tx = db.transaction(["songs", "playlists"], "readonly");
-    tx.objectStore("songs").getAll().onsuccess = (e) => tracks = e.target.result;
-    tx.objectStore("playlists").getAll().onsuccess = (e) => {
-        playlists = e.target.result;
-        render();
-    };
-}
-
-// 3. 画面の切り替えと表示
-function switchTab(view) {
-    currentView = view; currentPlaylistId = null; isEditing = false;
-    document.getElementById('tab-lib').classList.toggle('active', view === 'library');
-    document.getElementById('tab-play').classList.toggle('active', view === 'playlist');
-    render();
-}
-
-function render() {
-    const grid = document.getElementById('main-grid');
-    const title = document.getElementById('view-title');
-    const leftBtn = document.getElementById('left-btn');
-
+// --- ヘッダー右ボタン（＋ボタン）の挙動を修正 ---
+function handleHeaderRight() {
     if (currentView === 'library') {
-        title.innerText = "ライブラリ";
-        leftBtn.innerText = isEditing ? "完了" : "編集";
-        grid.innerHTML = tracks.map(t => renderCard(t, 'song')).join('');
+        // ライブラリ画面ならファイルアップロード
+        document.getElementById('audio-upload').click();
     } else if (currentPlaylistId === null) {
-        title.innerText = "プレイリスト";
-        leftBtn.innerText = isEditing ? "完了" : "編集";
-        grid.innerHTML = playlists.map(p => renderCard(p, 'playlist')).join('');
+        // プレイリスト一覧画面なら新規作成
+        createPlaylist();
     } else {
-        const pl = playlists.find(p => p.id === currentPlaylistId);
-        title.innerText = pl.name;
-        leftBtn.innerText = "戻る";
-        const plSongs = tracks.filter(t => pl.songIds.includes(t.id));
-        grid.innerHTML = plSongs.map(t => renderCard(t, 'song')).join('');
+        // プレイリスト詳細画面なら「曲を追加モーダル」を開く
+        openPicker();
     }
 }
 
-function renderCard(item, type) {
-    const isSong = type === 'song';
-    return `
-        <div class="card ${isEditing ? 'editing' : ''}" onclick="${isEditing ? '' : (isSong ? `play(${item.id})` : `openPlaylist(${item.id})`)}">
-            <div class="del-badge" onclick="event.stopPropagation(); ${isSong ? `deleteTrack(${item.id})` : `deletePlaylist(${item.id})`}"><i class="fa-solid fa-minus"></i></div>
-            <img src="${item.cover || ''}" class="card-img">
-            <div style="margin-top:8px; font-size:14px; font-weight:600;">${item.name}</div>
-            <div style="font-size:11px; color:#8e8e93;">${isSong ? (item.artist || '不明') : item.songIds.length + '曲'}</div>
-        </div>`;
-}
-
-// 4. 曲選択モーダルのロジック（ここが修正のキモです）
+// --- 曲選択モーダル（ピッカー）の呼び出しを強化 ---
 function openPicker() {
     const pl = playlists.find(p => p.id === currentPlaylistId);
-    selectedTrackIds = pl.songIds ? [...pl.songIds] : []; // 現在のリストをコピー
+    if (!pl) return;
+
+    // 現在のプレイリストに含まれている曲IDを取得（なければ空配列）
+    selectedTrackIds = pl.songIds ? [...pl.songIds] : [];
     
     const list = document.getElementById('picker-list');
+    // 全楽曲（tracks）を表示し、選択済みにはチェックを入れる
     list.innerHTML = tracks.map(t => `
         <div class="picker-item ${selectedTrackIds.includes(t.id) ? 'selected' : ''}" 
-             id="p-item-${t.id}" onclick="togglePickerSelect(${t.id})">
-            <img src="${t.cover || ''}">
-            <div style="flex:1">
-                <div style="font-weight:600;">${t.name}</div>
-                <div style="font-size:12px; color:#888;">${t.artist}</div>
+             id="p-item-${t.id}" 
+             onclick="togglePicker(${t.id}, this)"
+             style="display:flex; align-items:center; padding:12px; border-bottom:1px solid #eee; cursor:pointer;">
+            <img src="${t.cover || ''}" style="width:45px; height:45px; border-radius:4px; margin-right:12px; object-fit:cover; background:#f0f0f0;">
+            <div style="flex:1;">
+                <div style="font-weight:600; font-size:14px;">${t.name}</div>
+                <div style="font-size:11px; color:#888;">${t.artist || '不明'}</div>
             </div>
-            <i class="fa-solid fa-circle-check picker-check"></i>
-        </div>`).join('');
-    
-    document.getElementById('picker-modal').style.display = 'flex';
-    setTimeout(() => document.getElementById('picker-modal').classList.add('active'), 10);
+            <i class="fa-solid fa-circle-check picker-check" style="font-size:20px; color:${selectedTrackIds.includes(t.id) ? 'var(--key-color)' : '#ddd'};"></i>
+        </div>
+    `).join('');
+
+    const modal = document.getElementById('picker-modal');
+    modal.style.display = 'flex';
+    // アニメーション用に微小な遅延を入れて active クラスを付与
+    setTimeout(() => modal.classList.add('active'), 10);
 }
 
-function togglePickerSelect(id) {
-    const el = document.getElementById(`p-item-${id}`);
+// --- チェックの切り替え ---
+function togglePicker(id, el) {
+    const icon = el.querySelector('.picker-check');
     if (selectedTrackIds.includes(id)) {
         selectedTrackIds = selectedTrackIds.filter(tid => tid !== id);
         el.classList.remove('selected');
+        icon.style.color = '#ddd';
     } else {
         selectedTrackIds.push(id);
         el.classList.add('selected');
+        icon.style.color = 'var(--key-color)';
     }
 }
 
-// 完了ボタン：保存処理を確実にする
+// --- 保存処理（ここが重要：DB書き込み後に画面更新） ---
 function savePickerSelection() {
     const pl = playlists.find(p => p.id === currentPlaylistId);
     if (!pl) return;
 
-    pl.songIds = selectedTrackIds;
+    pl.songIds = selectedTrackIds; // 選択したID配列をセット
     
     const tx = db.transaction("playlists", "readwrite");
     const store = tx.objectStore("playlists");
-    const req = store.put(pl);
+    const request = store.put(pl);
 
-    req.onsuccess = () => {
+    request.onsuccess = () => {
+        console.log("プレイリストを更新しました");
         closePicker();
-        loadAll(); // 再読み込みして画面を更新
+        loadAll(); // 最新のデータを再読み込みして描画
+    };
+    
+    request.onerror = (err) => {
+        console.error("保存失敗:", err);
+        alert("保存できませんでした。");
     };
 }
 
@@ -116,49 +84,3 @@ function closePicker() {
     modal.classList.remove('active');
     setTimeout(() => { modal.style.display = 'none'; }, 400);
 }
-
-// 5. その他の操作（ヘッダー、再生、アップロードなど）
-function handleHeaderLeft() {
-    if (currentPlaylistId !== null) { currentPlaylistId = null; render(); }
-    else { isEditing = !isEditing; render(); }
-}
-
-function handleHeaderRight() {
-    if (currentView === 'library') document.getElementById('audio-upload').click();
-    else if (currentPlaylistId === null) createPlaylist();
-    else openPicker();
-}
-
-function createPlaylist() {
-    const name = prompt("プレイリスト名");
-    if (!name) return;
-    db.transaction("playlists", "readwrite").objectStore("playlists").add({name, cover: "", songIds: []}).oncomplete = loadAll;
-}
-
-function openPlaylist(id) { currentPlaylistId = id; render(); }
-
-function play(id) {
-    const t = tracks.find(x => x.id === id);
-    player.src = URL.createObjectURL(t.data);
-    document.getElementById('m-title').innerText = t.name;
-    document.getElementById('m-img').src = t.cover || '';
-    document.getElementById('mini').style.display = 'flex';
-    player.play();
-}
-
-function deleteTrack(id) { if(confirm("削除しますか？")) db.transaction("songs","readwrite").objectStore("songs").delete(id).onsuccess = loadAll; }
-function deletePlaylist(id) { if(confirm("削除しますか？")) db.transaction("playlists","readwrite").objectStore("playlists").delete(id).onsuccess = loadAll; }
-function toggle() { player.paused ? player.play() : player.pause(); }
-
-document.getElementById('audio-upload').onchange = (e) => {
-    for (let f of e.target.files) {
-        jsmediatags.read(f, { onSuccess: (tag) => {
-            let c = null; if(tag.tags.picture){
-                let d = tag.tags.picture.data, s = "";
-                for(let i=0; i<d.length; i++) s += String.fromCharCode(d[i]);
-                c = `data:${tag.tags.picture.format};base64,${btoa(s)}`;
-            }
-            db.transaction("songs","readwrite").objectStore("songs").add({ name: tag.tags.title || f.name, artist: tag.tags.artist || "不明", cover: c, data: f }).oncomplete = loadAll;
-        }});
-    }
-};
