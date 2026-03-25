@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Offline App</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f0f2f5; }
+        .card { background: white; padding: 2rem; border-radius: 20px; shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #333; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Hello World!</h1>
+        <p>これはオフラインで動くアプリです。</p>
+    </div>
+
+    <script>
+        // Service Workerの登録（オフライン対応の心臓部）
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log("Service Worker 登録完了"))
+                .catch(err => console.log("登録失敗", err));
+        }
+    </script>
+</body>
+</html>
