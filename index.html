@@ -120,6 +120,35 @@
 
     <div id="edit-modal" class="modal"><div class="header"><div class="header-top"><button onclick="closeEdit()" style="color:var(--key-color); border:none; background:none; font-size:16px;">キャンセル</button><h2>情報を編集</h2><button onclick="saveEdit()" style="color:var(--key-color); font-weight:bold; border:none; background:none; font-size:16px;">保存</button></div></div><div class="modal-body"><label style="font-size:12px; color:#888;">曲名</label><input type="text" id="edit-name" class="edit-input"><label style="font-size:12px; color:#888;">アーティスト</label><input type="text" id="edit-artist" class="edit-input"><div id="artist-suggestions" class="suggestion-container"></div><label style="font-size:12px; color:#888;">歌詞</label><textarea id="edit-lyrics" class="edit-input" style="height:150px;"></textarea></div></div>
 
+    <div id="playlist-edit-modal" class="modal">
+        <div class="header">
+            <div class="header-top">
+                <button onclick="closePlaylistEdit()" style="color:var(--key-color); border:none; background:none; font-size:16px;">キャンセル</button>
+                <h2>プレイリスト編集</h2>
+                <button onclick="savePlaylistEdit()" style="color:var(--key-color); font-weight:bold; border:none; background:none; font-size:16px;">保存</button>
+            </div>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+            <img id="pl-edit-img-preview" style="width:180px; height:180px; border-radius:12px; object-fit:cover; background:#eee; margin-bottom:15px; box-shadow:0 4px 10px rgba(0,0,0,0.1);" onclick="document.getElementById('pl-img-upload').click()">
+            <div style="font-size:12px; color:#888; margin-bottom:30px;">画像をタップして変更</div>
+            <input type="file" id="pl-img-upload" accept="image/*" style="display:none" onchange="previewPlaylistImage(event)">
+            
+            <label style="font-size:12px; color:#888; display:block; text-align:left; margin-bottom:5px;">プレイリスト名</label>
+            <input type="text" id="pl-edit-name" class="edit-input" placeholder="名前を入力">
+        </div>
+    </div>
+
+    <div id="add-song-modal" class="modal">
+        <div class="header">
+            <div class="header-top">
+                <div style="width:40px;"></div>
+                <h2>曲を追加</h2>
+                <button onclick="closeAddSongModal()" style="color:var(--key-color); font-weight:bold; border:none; background:none; font-size:16px;">完了</button>
+            </div>
+        </div>
+        <div class="modal-body" id="add-song-list" style="padding: 10px 20px;"></div>
+    </div>
+
     <div class="tab-bar">
         <button class="tab-item active" id="tab-lib" onclick="switchTab('library')"><i class="fa-solid fa-square-poll-vertical"></i><span>ライブラリ</span></button>
         <button class="tab-item" id="tab-play" onclick="switchTab('playlist')"><i class="fa-solid fa-music"></i><span>プレイリスト</span></button>
@@ -183,7 +212,13 @@
                 display.className = "grid";
                 display.innerHTML = playlists.map(p => {
                     const firstSong = tracks.find(t => p.songIds.includes(t.id));
-                    return `<div class="card ${isEditing?'editing':''}" onclick="${isEditing?`deletePlaylist(${p.id})`:`openPlaylist(${p.id})`}"><div class="del-badge"><i class="fa-solid fa-minus"></i></div><img src="${firstSong?firstSong.cover:''}" class="card-img"><div style="margin-top:8px; font-size:13px; font-weight:600;">${p.name}</div></div>`;
+                    const coverSrc = p.cover || (firstSong ? firstSong.cover : '');
+                    return `
+                        <div class="card ${isEditing?'editing':''}" onclick="${isEditing?`openPlaylistEdit(${p.id})`:`openPlaylist(${p.id})`}">
+                            <div class="del-badge" onclick="event.stopPropagation(); deletePlaylist(${p.id})"><i class="fa-solid fa-minus"></i></div>
+                            <img src="${coverSrc}" class="card-img">
+                            <div style="margin-top:8px; font-size:13px; font-weight:600;">${p.name}</div>
+                        </div>`;
                 }).join('');
             } else {
                 const pl = playlists.find(p => p.id === currentPlaylistId);
@@ -209,7 +244,7 @@
             }
         }
 
-        // --- リピート・シャッフル機能の追加 ---
+        // --- リピート・シャッフル機能 ---
         function toggleShuffle() {
             isShuffle = !isShuffle;
             const btn = document.getElementById('btn-shuffle');
@@ -217,39 +252,26 @@
         }
 
         function toggleRepeat() {
-            repeatMode = (repeatMode + 1) % 3; // 0 -> 1 -> 2 -> 0...
+            repeatMode = (repeatMode + 1) % 3;
             const btn = document.getElementById('btn-repeat');
             const badge = document.getElementById('repeat-badge');
-            
-            if (repeatMode === 0) {
-                btn.style.color = "rgba(255,255,255,0.5)";
-                badge.style.display = "none";
-            } else if (repeatMode === 1) {
-                btn.style.color = "var(--key-color)";
-                badge.style.display = "none";
-            } else if (repeatMode === 2) {
-                btn.style.color = "var(--key-color)";
-                badge.style.display = "block";
-            }
+            if (repeatMode === 0) { btn.style.color = "rgba(255,255,255,0.5)"; badge.style.display = "none"; }
+            else if (repeatMode === 1) { btn.style.color = "var(--key-color)"; badge.style.display = "none"; }
+            else if (repeatMode === 2) { btn.style.color = "var(--key-color)"; badge.style.display = "block"; }
         }
 
         function playSong(id) {
             const t = tracks.find(x => x.id === id);
             if (!t) return;
-            
-            // 現在の表示リストを再生用リストにコピー
             if (currentPlaylistId !== null) {
                 const pl = playlists.find(p => p.id === currentPlaylistId);
                 playingTracks = pl.songIds.map(sid => tracks.find(tx => tx.id === sid)).filter(x => x);
             } else {
                 playingTracks = getSortedTracks(tracks);
             }
-            
             currentTrackIdx = playingTracks.findIndex(x => x.id === id);
-            
             if (audio.src) URL.revokeObjectURL(audio.src);
             audio.src = URL.createObjectURL(t.data);
-            
             document.getElementById('m-img').src = t.cover || '';
             document.getElementById('m-title').innerText = t.name;
             document.getElementById('f-title').innerText = t.name;
@@ -262,46 +284,24 @@
 
         function next() {
             if (playingTracks.length === 0) return;
-
-            // 1曲リピート設定時
-            if (repeatMode === 2) {
-                audio.currentTime = 0;
-                audio.play();
-                return;
-            }
-
-            // シャッフル設定時
+            if (repeatMode === 2) { audio.currentTime = 0; audio.play(); return; }
             if (isShuffle) {
                 currentTrackIdx = Math.floor(Math.random() * playingTracks.length);
             } else {
                 currentTrackIdx++;
-                // リストの最後まで行ったら
                 if (currentTrackIdx >= playingTracks.length) {
-                    if (repeatMode === 1) {
-                        currentTrackIdx = 0; // 全曲リピート
-                    } else {
-                        currentTrackIdx = playingTracks.length - 1;
-                        audio.pause();
-                        return;
-                    }
+                    if (repeatMode === 1) currentTrackIdx = 0;
+                    else { currentTrackIdx = playingTracks.length - 1; audio.pause(); return; }
                 }
             }
             playSong(playingTracks[currentTrackIdx].id);
         }
 
         function prev() {
-            if (audio.currentTime > 3) {
-                audio.currentTime = 0;
-            } else {
-                currentTrackIdx = (currentTrackIdx - 1 + playingTracks.length) % playingTracks.length;
-                playSong(playingTracks[currentTrackIdx].id);
-            }
+            if (audio.currentTime > 3) audio.currentTime = 0;
+            else { currentTrackIdx = (currentTrackIdx - 1 + playingTracks.length) % playingTracks.length; playSong(playingTracks[currentTrackIdx].id); }
         }
-
-        // 曲が終わった時の処理を接続
         audio.onended = () => next();
-
-        // --- 以下、既存の関数はそのまま維持 ---
 
         function togglePlay() { audio.paused ? audio.play() : audio.pause(); }
         audio.onplay = () => { document.getElementById('m-pp').className = 'fa-solid fa-pause'; document.getElementById('f-pp').className = 'fa-solid fa-pause'; };
@@ -336,12 +336,23 @@
         function closeFull() { full.classList.remove('active'); full.style.transform = 'translateY(100%)'; }
         
         function handleHeaderLeft() { if(currentPlaylistId!==null){ currentPlaylistId=null; render(); } else { isEditing=!isEditing; render(); } }
-        function handleHeaderRight() { if(currentView==='library') document.getElementById('audio-upload').click(); else createPlaylist(); }
+        
+        // ヘッダー右ボタンの挙動変更
+        function handleHeaderRight() {
+            if(currentPlaylistId !== null) {
+                openAddSongModal(); // プレイリストの中なら曲追加
+            } else if(currentView === 'library') {
+                document.getElementById('audio-upload').click();
+            } else {
+                createPlaylist();
+            }
+        }
+
         function switchTab(view) { currentView = view; currentPlaylistId = null; isEditing = false; render(); }
         function openPlaylist(id) { currentPlaylistId = id; render(); }
         function deleteSong(id) { if(confirm("消去？")) db.transaction("songs","readwrite").objectStore("songs").delete(id).onsuccess = loadAll; }
-        function deletePlaylist(id) { if(confirm("プレイリストを削除？")) db.transaction("playlists","readwrite").objectStore("playlists").delete(id).onsuccess = loadAll; }
-        function createPlaylist() { const n = prompt("名前"); if(n) db.transaction("playlists","readwrite").objectStore("playlists").add({name:n, songIds:[]}).oncomplete = loadAll; }
+        function deletePlaylist(id) { if(confirm("プレイリストを削除しますか？")) db.transaction("playlists","readwrite").objectStore("playlists").delete(id).onsuccess = loadAll; }
+        function createPlaylist() { const n = prompt("名前"); if(n) db.transaction("playlists","readwrite").objectStore("playlists").add({name:n, cover:null, songIds:[]}).oncomplete = loadAll; }
         function toggleLyrics() { document.getElementById('lyrics-display').classList.toggle('active'); const t=playingTracks[currentTrackIdx]; document.getElementById('lyrics-display').innerText=t?t.lyrics||"歌詞なし":""; }
         
         function openEdit(id) {
@@ -365,6 +376,86 @@
             if (newIdx < 0 || newIdx >= pl.songIds.length) return;
             [pl.songIds[idx], pl.songIds[newIdx]] = [pl.songIds[newIdx], pl.songIds[idx]];
             db.transaction("playlists","readwrite").objectStore("playlists").put(pl).onsuccess = loadAll;
+        }
+
+        // --- プレイリスト編集関連 ---
+        let editingPlaylistId = null;
+        let tempPlaylistCover = null;
+
+        function openPlaylistEdit(id) {
+            editingPlaylistId = id;
+            const pl = playlists.find(p => p.id === id);
+            document.getElementById('pl-edit-name').value = pl.name;
+            
+            const firstSong = tracks.find(t => pl.songIds.includes(t.id));
+            tempPlaylistCover = pl.cover || null;
+            document.getElementById('pl-edit-img-preview').src = tempPlaylistCover || (firstSong ? firstSong.cover : '');
+            
+            document.getElementById('playlist-edit-modal').style.display = 'flex';
+        }
+
+        function closePlaylistEdit() {
+            document.getElementById('playlist-edit-modal').style.display = 'none';
+        }
+
+        function previewPlaylistImage(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                tempPlaylistCover = evt.target.result;
+                document.getElementById('pl-edit-img-preview').src = tempPlaylistCover;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function savePlaylistEdit() {
+            const pl = playlists.find(p => p.id === editingPlaylistId);
+            pl.name = document.getElementById('pl-edit-name').value;
+            pl.cover = tempPlaylistCover;
+            db.transaction("playlists", "readwrite").objectStore("playlists").put(pl).onsuccess = () => {
+                closePlaylistEdit();
+                loadAll();
+            };
+        }
+
+        // --- プレイリストへの曲追加関連 ---
+        function openAddSongModal() {
+            const pl = playlists.find(p => p.id === currentPlaylistId);
+            const listContainer = document.getElementById('add-song-list');
+            
+            listContainer.innerHTML = tracks.map(t => {
+                const isAdded = pl.songIds.includes(t.id);
+                return `
+                    <div class="list-item" onclick="toggleSongInPlaylist(${t.id})">
+                        <img src="${t.cover||''}">
+                        <div style="flex:1;">
+                            <div style="font-weight:600;">${t.name}</div>
+                            <div style="font-size:12px; color:#888;">${t.artist||'不明'}</div>
+                        </div>
+                        <i class="${isAdded ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}" style="font-size:24px; color:${isAdded ? 'var(--key-color)' : '#ddd'};"></i>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('add-song-modal').style.display = 'flex';
+        }
+
+        function closeAddSongModal() {
+            document.getElementById('add-song-modal').style.display = 'none';
+            render(); // 閉じた時に現在のプレイリスト画面を更新
+        }
+
+        function toggleSongInPlaylist(songId) {
+            const pl = playlists.find(p => p.id === currentPlaylistId);
+            if (pl.songIds.includes(songId)) {
+                pl.songIds = pl.songIds.filter(id => id !== songId); // 外す
+            } else {
+                pl.songIds.push(songId); // 追加する
+            }
+            db.transaction("playlists", "readwrite").objectStore("playlists").put(pl).onsuccess = () => {
+                openAddSongModal(); // 再描画してチェックマークを更新
+            };
         }
 
         document.getElementById('audio-upload').onchange = (e) => {
