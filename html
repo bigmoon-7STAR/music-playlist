@@ -3,27 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>My Offline App</title>
+    <title>Music Player</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f0f2f5; }
-        .card { background: white; padding: 2rem; border-radius: 20px; shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
-        h1 { color: #333; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: #121212; color: white;
+            display: flex; align-items: center; justify-content: center; 
+            height: 100vh; margin: 0; overflow: hidden;
+        }
+        .player-card { 
+            background: #1e1e1e; padding: 2rem; border-radius: 30px; 
+            text-align: center; width: 85%; max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h2 { margin-top: 0; color: #1DB954; }
+        .upload-btn {
+            display: inline-block; background: #1DB954; color: white;
+            padding: 18px 35px; border-radius: 50px; cursor: pointer;
+            margin: 20px 0; font-weight: bold; font-size: 1.1rem;
+            transition: transform 0.2s;
+        }
+        .upload-btn:active { transform: scale(0.95); }
+        #file-name { font-size: 0.9rem; color: #b3b3b3; margin-bottom: 25px; min-height: 1.2em; }
+        audio { width: 100%; filter: invert(100%) hue-rotate(180deg); } 
+        .status-badge { 
+            margin-top: 25px; font-size: 0.75rem; padding: 6px 12px; 
+            border-radius: 20px; display: inline-block; background: #333;
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>Hello World!</h1>
-        <p>これはオフラインで動くアプリです。</p>
+    <div class="player-card">
+        <h2>Music Player</h2>
+        <input type="file" id="audio-upload" accept="audio/mp3,audio/wav" style="display:none;">
+        <label for="audio-upload" class="upload-btn">曲をえらぶ</label>
+        <div id="file-name">曲が選択されていません</div>
+        <audio id="audio-player" controls></audio>
+        <div id="status" class="status-badge">準備完了</div>
     </div>
 
     <script>
-        // Service Workerの登録（オフライン対応の心臓部）
+        const upload = document.getElementById('audio-upload');
+        const player = document.getElementById('audio-player');
+        const fileName = document.getElementById('file-name');
+        const status = document.getElementById('status');
+
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                player.src = url;
+                fileName.textContent = file.name;
+                player.play();
+                status.textContent = "再生中";
+            }
+        });
+
+        // ネットワーク状態の検知
+        window.addEventListener('offline', () => {
+            status.textContent = "オフライン動作中";
+            status.style.color = "#ff4b2b";
+        });
+        window.addEventListener('online', () => {
+            status.textContent = "オンライン";
+            status.style.color = "#1DB954";
+        });
+
+        // Service Workerの登録
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log("Service Worker 登録完了"))
-                .catch(err => console.log("登録失敗", err));
+            navigator.serviceWorker.register('sw.js').catch(() => {});
         }
     </script>
 </body>
 </html>
+
