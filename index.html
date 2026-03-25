@@ -39,7 +39,19 @@
         /* フルプレイヤー & ミニプレイヤー */
         .full-player { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); visibility: hidden; color: white; touch-action: none; }
         .full-player.active { transform: translateY(0); visibility: visible; }
+        
         .mini-player { position: fixed; bottom: calc(85px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 60px; background: rgba(255,255,255,0.9); backdrop-filter: blur(20px); border-radius: 12px; display: none; align-items: center; padding: 0 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; }
+        
+        /* ここでミニプレイヤーの画像サイズを固定 */
+        .mini-player img { 
+            width: 44px !important; 
+            height: 44px !important; 
+            border-radius: 6px; 
+            margin-right: 12px; 
+            object-fit: cover; 
+            flex-shrink: 0; 
+            background: #eee;
+        }
         
         /* 歌詞 */
         .lyrics-panel { position: absolute; top: 100px; left: 0; width: 100%; height: calc(100% - 300px); padding: 30px; overflow-y: auto; background: rgba(0,0,0,0.7); backdrop-filter: blur(20px); display: none; z-index: 5100; font-size: 24px; font-weight: bold; line-height: 1.6; }
@@ -199,12 +211,17 @@
             currentTrackIdx = tracks.indexOf(t);
             if (audio.src) URL.revokeObjectURL(audio.src);
             audio.src = URL.createObjectURL(t.data);
+
+            // 画像の制御を追加
+            const mImg = document.getElementById('m-img');
+            mImg.src = t.cover || '';
+            mImg.style.display = t.cover ? 'block' : 'none';
+
             document.getElementById('m-title').innerText = t.name;
-            document.getElementById('m-img').src = t.cover || '';
             document.getElementById('f-title').innerText = t.name;
             document.getElementById('f-artist').innerText = t.artist || '不明';
             document.getElementById('f-img').src = t.cover || '';
-            document.getElementById('bg-blur').style.backgroundImage = `url(${t.cover})`;
+            document.getElementById('bg-blur').style.backgroundImage = t.cover ? `url(${t.cover})` : 'none';
             document.getElementById('mini').style.display = 'flex';
             audio.play();
         }
