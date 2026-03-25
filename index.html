@@ -20,8 +20,10 @@
 
         #content { flex: 1; overflow-y: auto; padding-bottom: 180px; }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px 15px; padding: 20px; }
-        .card { position: relative; cursor: pointer; }
-        .card-img { width: 100%; aspect-ratio: 1/1; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.1); background: #eee; }
+        .card { position: relative;  cursor: pointer;  min-width: 0; }
+        .card-img {  width: 100%; aspect-ratio: 1/1;  border-radius: 10px;  object-fit: cover;  box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+                   background: #eee; display: block; }
+
         .del-badge { position: absolute; top: -8px; left: -8px; width: 24px; height: 24px; background: #FF3B30; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; border: 2px solid white; z-index: 10; font-size: 12px; }
         .editing .del-badge { display: flex; }
 
