@@ -189,6 +189,9 @@
             document.getElementById('bg-blur').style.backgroundImage = t.cover ? `url(${t.cover})` : 'none';
             document.getElementById('mini').style.display = 'flex';
             audio.play();
+            /* playSong関数の中にある、この1行を探して確認 */
+document.getElementById('bg-blur').style.backgroundImage = t.cover ? `url(${t.cover})` : 'none';
+
         }
 
         function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('btn-shuffle').style.color = isShuffle ? 'var(--key-color)' : 'rgba(255,255,255,0.5)'; }
