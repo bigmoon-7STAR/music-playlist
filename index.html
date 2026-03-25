@@ -25,7 +25,21 @@
         .editing .del-badge { display: flex; }
         .mini-player { position: fixed; bottom: calc(85px + env(safe-area-inset-bottom)); left: 12px; right: 12px; height: 60px; background: rgba(255,255,255,0.8); backdrop-filter: blur(20px); border-radius: 12px; display: none; align-items: center; padding: 0 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; }
         .mini-player img { width: 44px; height: 44px; border-radius: 6px; margin-right: 12px; object-fit: cover; flex-shrink: 0; background: #eee; }
-        .full-player { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); visibility: hidden; color: white; touch-action: none; }
+        .full-player /* ブラウザの検索(Ctrl+F)で「#bg-blur」を探して、ここを貼り付け */
+#bg-blur {
+    position: absolute;
+    width: 150%; 
+    height: 150%;
+    top: -25%;
+    left: -25%;
+    z-index: -1;
+    /* ぼかしを強く、少し暗くして文字を読みやすくします */
+    filter: blur(80px) brightness(0.5) saturate(1.4); 
+    background-size: cover;
+    background-position: center;
+    transition: background-image 0.8s ease-in-out;
+}
+
         .full-player.active { transform: translateY(0); visibility: visible; }
         .seeker { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255, 255, 255, 0.2); border-radius: 2px; outline: none; margin: 20px 0 10px; }
         .lyrics-panel { position: absolute; top: 100px; left: 0; width: 100%; height: calc(100% - 300px); padding: 30px; overflow-y: auto; background: rgba(0,0,0,0.7); backdrop-filter: blur(20px); display: none; z-index: 5100; font-size: 24px; font-weight: bold; line-height: 1.6; }
